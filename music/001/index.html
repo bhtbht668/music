@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="zh">
+
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>On My Way</title>
 
 <style>
+
 *{
     margin:0;
     padding:0;
@@ -13,55 +16,81 @@
 }
 
 body{
-    height:100vh;
-    overflow:hidden;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    font-family:sans-serif;
-    background:
-linear-gradient(
-rgba(0,0,0,.45),
-rgba(0,0,0,.75)
-),
-url('bg.jpg');
 
-background-size:cover;
-background-position:center;
-background-repeat:no-repeat;
+    height:100vh;
+
+    overflow:hidden;
+
+    display:flex;
+
+    justify-content:center;
+
+    align-items:center;
+
+    font-family:sans-serif;
+
+    background:
+    linear-gradient(
+    rgba(0,0,0,.45),
+    rgba(0,0,0,.75)
+    ),
+    url('/music/music/001/bg.jpg');
+
+    background-size:cover;
+
+    background-position:center;
+
+    background-repeat:no-repeat;
+
     color:white;
+
 }
 
-/* 动态背景 */
-
-
-/* 播放器 */
 .player{
+
     position:relative;
+
     width:380px;
+
     backdrop-filter:blur(20px);
+
     background:rgba(255,255,255,.08);
+
     border:1px solid rgba(255,255,255,.08);
+
     border-radius:35px;
+
     padding:30px;
+
     box-shadow:
     0 0 40px rgba(0,0,0,.6);
+
     z-index:10;
+
 }
 
-/* 封面 */
 .cover-wrap{
+
     display:flex;
+
     justify-content:center;
+
     margin-top:10px;
+
 }
 
 .cover{
+
     width:250px;
+
     height:250px;
+
     border-radius:50%;
+
     overflow:hidden;
+
     position:relative;
+
     animation:none;
 
     box-shadow:
@@ -77,200 +106,327 @@ background-repeat:no-repeat;
         #000 3px,
         #000 4px
     );
+
 }
 
 .cover img{
+
     width:100%;
+
     height:100%;
+
     object-fit:cover;
+
 }
 
 .playing{
+
     animation:spin 8s linear infinite;
+
 }
 
 @keyframes spin{
-    from{transform:rotate(0deg)}
-    to{transform:rotate(360deg)}
+
+    from{
+        transform:rotate(0deg)
+    }
+
+    to{
+        transform:rotate(360deg)
+    }
+
 }
 
-/* 黑胶中间 */
 .cover::after{
+
     content:"";
+
     position:absolute;
+
     width:60px;
+
     height:60px;
+
     background:#111;
+
     border:6px solid #999;
+
     border-radius:50%;
+
     top:50%;
+
     left:50%;
+
     transform:translate(-50%,-50%);
+
 }
 
-/* 歌名 */
 .song{
+
     text-align:center;
+
     margin-top:25px;
+
 }
 
 .song h1{
+
     font-size:30px;
+
 }
 
 .song p{
+
     opacity:.7;
+
     margin-top:8px;
+
 }
 
-/* 进度条 */
 .progress-area{
+
     margin-top:30px;
+
 }
 
 .progress{
+
     width:100%;
+
     appearance:none;
+
     height:6px;
+
     border-radius:10px;
+
     background:rgba(255,255,255,.15);
+
 }
 
 .progress::-webkit-slider-thumb{
+
     appearance:none;
+
     width:18px;
+
     height:18px;
+
     border-radius:50%;
+
     background:white;
+
     cursor:pointer;
+
 }
 
 .time{
+
     display:flex;
+
     justify-content:space-between;
+
     margin-top:10px;
+
     font-size:13px;
+
     opacity:.8;
+
 }
 
-/* 按钮 */
 .controls{
+
     margin-top:30px;
+
     display:flex;
+
     justify-content:center;
+
     align-items:center;
+
     gap:20px;
+
 }
 
 .btn{
+
     width:60px;
+
     height:60px;
+
     border-radius:50%;
+
     border:none;
+
     cursor:pointer;
+
     font-size:22px;
+
     color:white;
+
     background:rgba(255,255,255,.1);
+
     transition:.25s;
+
     backdrop-filter:blur(10px);
+
 }
 
 .btn:hover{
+
     transform:scale(1.1);
+
     background:rgba(255,255,255,.2);
+
 }
 
 .play-btn{
+
     width:78px;
+
     height:78px;
+
     font-size:30px;
+
     background:
     linear-gradient(
         135deg,
         #00c6ff,
         #0072ff
     );
+
 }
 
-/* 倍速 */
 .bottom{
+
     margin-top:28px;
+
     display:flex;
+
     justify-content:space-between;
+
     align-items:center;
+
 }
 
 select{
+
     background:rgba(255,255,255,.08);
+
     color:white;
+
     border:none;
+
     padding:10px 14px;
+
     border-radius:12px;
+
 }
 
-/* 音浪 */
 .wave{
+
     margin-top:25px;
+
     height:40px;
+
     display:flex;
+
     justify-content:center;
+
     align-items:end;
+
     gap:6px;
+
 }
 
 .bar{
+
     width:6px;
+
     height:10px;
+
     border-radius:10px;
+
     background:white;
+
     animation:wave 1s infinite ease-in-out;
+
 }
 
-.bar:nth-child(2){animation-delay:.1s}
-.bar:nth-child(3){animation-delay:.2s}
-.bar:nth-child(4){animation-delay:.3s}
-.bar:nth-child(5){animation-delay:.4s}
-.bar:nth-child(6){animation-delay:.5s}
+.bar:nth-child(2){
+    animation-delay:.1s
+}
+
+.bar:nth-child(3){
+    animation-delay:.2s
+}
+
+.bar:nth-child(4){
+    animation-delay:.3s
+}
+
+.bar:nth-child(5){
+    animation-delay:.4s
+}
+
+.bar:nth-child(6){
+    animation-delay:.5s
+}
 
 @keyframes wave{
+
     0%,100%{
+
         height:10px;
+
         opacity:.4;
+
     }
+
     50%{
+
         height:35px;
+
         opacity:1;
+
     }
+
 }
 
 </style>
+
 </head>
 
 <body>
 
-
 <div class="player">
 
 <div class="cover-wrap">
+
 <div class="cover" id="cover">
 
-<img src="bg.jpg">
+<img src="/music/music/001/bg.jpg">
 
 </div>
+
 </div>
 
 <div class="song">
+
 <h1>On My Way</h1>
+
 <p>Alan Walker</p>
+
 </div>
 
 <div class="wave">
+
 <div class="bar"></div>
 <div class="bar"></div>
 <div class="bar"></div>
 <div class="bar"></div>
 <div class="bar"></div>
 <div class="bar"></div>
+
 </div>
 
 <div class="progress-area">
@@ -282,8 +438,11 @@ class="progress"
 id="progress">
 
 <div class="time">
+
 <span id="current">0:00</span>
+
 <span id="duration">0:00</span>
+
 </div>
 
 </div>
@@ -294,7 +453,9 @@ id="progress">
 ⏪
 </button>
 
-<button class="btn play-btn" id="playBtn"
+<button
+class="btn play-btn"
+id="playBtn"
 onclick="toggleMusic()">
 ▶
 </button>
@@ -308,11 +469,17 @@ onclick="toggleMusic()">
 <div class="bottom">
 
 <select id="speed">
+
 <option value="0.5">0.5x</option>
+
 <option value="1" selected>1x</option>
+
 <option value="1.25">1.25x</option>
+
 <option value="1.5">1.5x</option>
+
 <option value="2">2x</option>
+
 </select>
 
 <div>🎵 Music App</div>
@@ -320,7 +487,11 @@ onclick="toggleMusic()">
 </div>
 
 <audio id="audio">
-<source src="on-my-way.mp3" type="audio/mpeg">
+
+<source
+src="/music/music/001/on-my-way.mp3"
+type="audio/mpeg">
+
 </audio>
 
 </div>
@@ -328,11 +499,15 @@ onclick="toggleMusic()">
 <script>
 
 const audio = document.getElementById('audio')
+
 const playBtn = document.getElementById('playBtn')
+
 const cover = document.getElementById('cover')
 
 const progress = document.getElementById('progress')
+
 const current = document.getElementById('current')
+
 const duration = document.getElementById('duration')
 
 const speed = document.getElementById('speed')
@@ -351,7 +526,9 @@ function toggleMusic(){
 
         cover.classList.add('playing')
 
-    }else{
+    }
+
+    else{
 
         audio.pause()
 
@@ -360,15 +537,21 @@ function toggleMusic(){
         playBtn.innerHTML = '▶'
 
         cover.classList.remove('playing')
+
     }
+
 }
 
 function backward(){
+
     audio.currentTime -= 10
+
 }
 
 function forward(){
+
     audio.currentTime += 10
+
 }
 
 speed.addEventListener('change',()=>{
@@ -401,19 +584,22 @@ progress.addEventListener('input',()=>{
 
 function format(time){
 
-    const minutes = Math.floor(time/60)
+    const minutes = Math.floor(time / 60)
 
-    let seconds = Math.floor(time%60)
+    let seconds = Math.floor(time % 60)
 
     if(seconds < 10){
+
         seconds = '0' + seconds
+
     }
 
     return minutes + ':' + seconds
+
 }
 
 </script>
 
-<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"d537d7dd43624af79cc751ef7d7950c2","r":1,"server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
+
 </html>
