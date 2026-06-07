@@ -1,0 +1,1787 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <title>星尘小恐龙跑酷 - 后台修复版</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background:
+        radial-gradient(circle at 10% 10%, rgba(56,189,248,.28), transparent 30%),
+        radial-gradient(circle at 90% 15%, rgba(245,158,11,.20), transparent 28%),
+        linear-gradient(135deg, #eaf6ff, #fff8ec);
+      font-family: Arial, "Microsoft YaHei", sans-serif;
+      user-select: none;
+    }
+
+    .shell {
+      width: fit-content;
+      max-width: 96vw;
+      padding: 20px;
+      border-radius: 28px;
+      background: rgba(255,255,255,.84);
+      box-shadow: 0 28px 80px rgba(15,23,42,.16);
+      border: 1px solid rgba(255,255,255,.9);
+    }
+
+    .top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo {
+      width: 44px;
+      height: 44px;
+      border-radius: 16px;
+      display: grid;
+      place-items: center;
+      background: #111827;
+      color: white;
+      font-size: 24px;
+      box-shadow: 0 12px 22px rgba(15,23,42,.22);
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 30px;
+      color: #172033;
+    }
+
+    .sub {
+      color: #667085;
+      font-size: 13px;
+      margin-top: 4px;
+    }
+
+    .badge {
+      padding: 9px 14px;
+      border-radius: 999px;
+      background: rgba(15,23,42,.06);
+      color: #667085;
+      border: 1px solid rgba(15,23,42,.12);
+      font-size: 13px;
+    }
+
+    .canvas-wrap {
+      width: 900px;
+      max-width: 100%;
+      border-radius: 24px;
+      overflow: hidden;
+      border: 2px solid rgba(15,23,42,.13);
+      background: white;
+    }
+
+    canvas {
+      display: block;
+      width: 900px;
+      height: 320px;
+      max-width: 100%;
+      outline: none;
+      touch-action: none;
+    }
+
+    .controls {
+      margin-top: 14px;
+      display: flex;
+      gap: 10px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    button {
+      border: 1px solid rgba(15,23,42,.14);
+      border-radius: 16px;
+      padding: 12px 18px;
+      font-size: 15px;
+      font-weight: 700;
+      background: white;
+      color: #172033;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(15,23,42,.09);
+    }
+
+    button:active {
+      transform: scale(.97);
+    }
+
+    .primary { background: linear-gradient(135deg, #7dd3fc, #38bdf8); }
+    .warning { background: linear-gradient(135deg, #fde68a, #f59e0b); }
+    .danger { background: linear-gradient(135deg, #fecaca, #fb7185); }
+
+    .help {
+      margin-top: 10px;
+      text-align: center;
+      font-size: 13px;
+      color: #667085;
+    }
+
+    kbd {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 7px;
+      background: rgba(15,23,42,.08);
+      border: 1px solid rgba(15,23,42,.15);
+      color: #172033;
+      font-weight: 700;
+      margin: 0 2px;
+    }
+  </style>
+</head>
+
+<body>
+  <script id="admin-password-data" type="application/json">{"hash":"c0d7c54022345b39c9be73e19b30ccb040ba03b1fefb2566a9f510a09aba4796"}</script>
+
+  <main class="shell">
+    <div class="top">
+      <div class="brand">
+        <div class="logo">🦖</div>
+        <div>
+          <h1>星尘小恐龙跑酷</h1>
+          <div class="sub">后台修复版 · 无需图片 · 可修改密码 · 可导出新文件</div>
+        </div>
+      </div>
+      <div class="badge">离线可玩</div>
+    </div>
+
+    <div class="canvas-wrap">
+      <canvas id="game" width="900" height="320"></canvas>
+    </div>
+
+    <div class="controls">
+      <button class="primary" id="startBtn">开始 / 跳跃</button>
+      <button id="duckBtn">蹲下</button>
+      <button id="pauseBtn">暂停</button>
+      <button class="warning" id="easyBtn">简单</button>
+      <button class="warning" id="normalBtn">普通</button>
+      <button class="warning" id="hardBtn">困难</button>
+      <button id="shopBtn">金币商城</button>
+      <button class="danger" id="clearBtn">清空记录</button>
+    </div>
+
+    <div class="help">
+      <kbd>空格</kbd> 开始/跳跃，
+      <kbd>↓</kbd> 蹲下，
+      <kbd>P</kbd> 暂停，
+      <kbd>R</kbd> 回菜单，
+      <kbd>B</kbd> 商城，
+      <kbd>X</kbd> 长按后台，
+      <kbd>1</kbd><kbd>2</kbd><kbd>3</kbd> 难度
+    </div>
+  </main>
+
+  <script>
+    window.addEventListener("error", function(event) {
+      try {
+        const canvas = document.getElementById("game");
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ef4444";
+        ctx.fillRect(20, 20, 860, 90);
+        ctx.fillStyle = "white";
+        ctx.font = "18px Arial";
+        ctx.fillText("游戏脚本出错，请把这行发给我：", 40, 55);
+        ctx.font = "14px Arial";
+        ctx.fillText(String(event.message || "未知错误").slice(0, 110), 40, 82);
+      } catch (e) {}
+    });
+
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const W = canvas.width;
+    const H = canvas.height;
+    const groundY = 250;
+
+    let gameState = "menu";
+    let previousGameState = "playing";
+    let difficulty = "normal";
+
+    const difficultyConfig = {
+      easy: { name: "简单", baseSpeed: 5, minGap: 90, maxGap: 155, birdChance: .22, color: "#22c55e" },
+      normal: { name: "普通", baseSpeed: 6, minGap: 68, maxGap: 125, birdChance: .35, color: "#38bdf8" },
+      hard: { name: "困难", baseSpeed: 7.2, minGap: 54, maxGap: 105, birdChance: .46, color: "#fb7185" }
+    };
+
+    let score = 0;
+    let coins = 0;
+    let scoreTimer = 0;
+    let walletCoins = Number(localStorage.getItem("dinoWalletCoinsStable")) || 0;
+    let bestScore = Number(localStorage.getItem("dinoBestScoreStable")) || 0;
+    let bestDifficulty = localStorage.getItem("dinoBestDifficultyStable") || "无";
+
+    let shopData = {
+      startShield: Number(localStorage.getItem("dinoShopStartShieldStable")) || 0,
+      startDouble: Number(localStorage.getItem("dinoShopStartDoubleStable")) || 0,
+      jumpBoost: localStorage.getItem("dinoShopJumpBoostStable") === "1",
+      coinMagnet: localStorage.getItem("dinoShopCoinMagnetStable") === "1"
+    };
+
+    let adminInfiniteCoins = localStorage.getItem("dinoAdminInfiniteCoinsStable") === "1";
+    let adminInvincible = localStorage.getItem("dinoAdminInvincibleStable") === "1";
+    let adminSpeedMultiplier = Number(localStorage.getItem("dinoAdminSpeedMultiplierStable")) || 1;
+
+    let xHoldTimer = null;
+    let passwordInput = "";
+    let newPasswordInput = "";
+    let adminButtons = [];
+
+    function getEmbeddedAdminPasswordHash() {
+      try {
+        const node = document.getElementById("admin-password-data");
+        const data = JSON.parse(node.textContent || "{}");
+        return data.hash || "c0d7c54022345b39c9be73e19b30ccb040ba03b1fefb2566a9f510a09aba4796";
+      } catch (e) {
+        return "c0d7c54022345b39c9be73e19b30ccb040ba03b1fefb2566a9f510a09aba4796";
+      }
+    }
+
+    let adminPasswordHash = localStorage.getItem("dinoAdminPasswordHashStable") || getEmbeddedAdminPasswordHash();
+
+    let shopMessage = "";
+    let shopMessageTimer = 0;
+
+    let gameSpeed = 6;
+    let baseSpeed = 6;
+    let groundOffset = 0;
+    let isNight = false;
+
+    let doubleScoreActive = false;
+    let doubleScoreTimer = 0;
+
+    let audioContext = null;
+
+    function initAudio() {
+      if (!audioContext) {
+        audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function beep(freq, duration, volume) {
+      if (!audioContext) return;
+      const osc = audioContext.createOscillator();
+      const gain = audioContext.createGain();
+      osc.frequency.value = freq;
+      osc.type = "square";
+      gain.gain.value = volume;
+      osc.connect(gain);
+      gain.connect(audioContext.destination);
+      osc.start();
+      osc.stop(audioContext.currentTime + duration);
+    }
+
+    const sounds = {
+      jump: function() { beep(520, .08, .08); },
+      coin: function() { beep(1150, .05, .06); },
+      pickup: function() { beep(900, .10, .07); },
+      power: function() { beep(680, .15, .08); },
+      shield: function() { beep(220, .18, .1); },
+      over: function() { beep(120, .24, .12); },
+      select: function() { beep(760, .06, .05); },
+      pause: function() { beep(330, .08, .06); }
+    };
+
+    const dino = {
+      x: 92,
+      y: groundY - 54,
+      width: 48,
+      height: 54,
+      normalWidth: 48,
+      normalHeight: 54,
+      duckWidth: 68,
+      duckHeight: 34,
+      velocityY: 0,
+      gravity: .62,
+      jumpPower: -12.5,
+      isJumping: false,
+      isDucking: false,
+      hasShield: false,
+      runFrame: 0,
+      runTimer: 0
+    };
+
+    let cactuses = [];
+    let birds = [];
+    let coinItems = [];
+    let shields = [];
+    let doubleItems = [];
+
+    let obstacleTimer = 0;
+    let nextObstacleTime = 90;
+
+    let coinTimer = 0;
+    let nextCoinTime = 100;
+
+    let shieldTimer = 0;
+    let nextShieldTime = 420;
+
+    let doubleTimer = 0;
+    let nextDoubleTime = 620;
+
+    const clouds = [
+      { x: 680, y: 70, speed: .55, size: 1 },
+      { x: 380, y: 100, speed: .38, size: .85 },
+      { x: 980, y: 55, speed: .48, size: 1.1 }
+    ];
+
+    function saveBestScore() {
+      localStorage.setItem("dinoBestScoreStable", bestScore);
+      localStorage.setItem("dinoBestDifficultyStable", bestDifficulty);
+    }
+
+    function saveShopData() {
+      localStorage.setItem("dinoWalletCoinsStable", walletCoins);
+      localStorage.setItem("dinoShopStartShieldStable", shopData.startShield);
+      localStorage.setItem("dinoShopStartDoubleStable", shopData.startDouble);
+      localStorage.setItem("dinoShopJumpBoostStable", shopData.jumpBoost ? "1" : "0");
+      localStorage.setItem("dinoShopCoinMagnetStable", shopData.coinMagnet ? "1" : "0");
+    }
+
+    function saveAdminData() {
+      localStorage.setItem("dinoAdminInfiniteCoinsStable", adminInfiniteCoins ? "1" : "0");
+      localStorage.setItem("dinoAdminInvincibleStable", adminInvincible ? "1" : "0");
+      localStorage.setItem("dinoAdminSpeedMultiplierStable", adminSpeedMultiplier);
+    }
+
+    async function sha256(text) {
+      const bytes = new TextEncoder().encode(text);
+      const hashBuffer = await crypto.subtle.digest("SHA-256", bytes);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(function(b) {
+        return b.toString(16).padStart(2, "0");
+      }).join("");
+    }
+
+    function savePasswordHashToPage(hash) {
+      const node = document.getElementById("admin-password-data");
+      if (node) {
+        node.textContent = JSON.stringify({ hash: hash });
+      }
+    }
+
+    function savePasswordHash(hash) {
+      adminPasswordHash = hash;
+      localStorage.setItem("dinoAdminPasswordHashStable", hash);
+      savePasswordHashToPage(hash);
+    }
+
+    function downloadPasswordUpdatedFile() {
+      savePasswordHashToPage(adminPasswordHash);
+      const content = "<!DOCTYPE html>\n" + document.documentElement.outerHTML;
+      const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "dino_admin_custom_password.html";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      URL.revokeObjectURL(url);
+      sounds.pickup();
+      showShopMessage("已导出带新密码的新版文件");
+    }
+
+    function clearRecords() {
+      bestScore = 0;
+      bestDifficulty = "无";
+      walletCoins = 0;
+      shopData.startShield = 0;
+      shopData.startDouble = 0;
+      shopData.jumpBoost = false;
+      shopData.coinMagnet = false;
+      saveBestScore();
+      saveShopData();
+      sounds.select();
+    }
+
+    function showShopMessage(text) {
+      shopMessage = text;
+      shopMessageTimer = 180;
+    }
+
+    function applyDifficulty() {
+      const cfg = difficultyConfig[difficulty];
+      baseSpeed = cfg.baseSpeed;
+      gameSpeed = baseSpeed;
+      nextObstacleTime = cfg.maxGap;
+    }
+
+    function getDifficultyName() {
+      return difficultyConfig[difficulty].name;
+    }
+
+    function addScore(n) {
+      score += doubleScoreActive ? n * 2 : n;
+    }
+
+    function roundRect(x, y, w, h, r, color) {
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.lineTo(x + w - r, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+      ctx.lineTo(x + w, y + h - r);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      ctx.lineTo(x + r, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+      ctx.lineTo(x, y + r);
+      ctx.quadraticCurveTo(x, y, x + r, y);
+      ctx.fill();
+    }
+
+    function strokePanel(x, y, w, h) {
+      ctx.fillStyle = isNight ? "rgba(15,23,42,.76)" : "rgba(255,255,255,.82)";
+      ctx.strokeStyle = isNight ? "rgba(255,255,255,.18)" : "rgba(15,23,42,.12)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + 24, y);
+      ctx.lineTo(x + w - 24, y);
+      ctx.quadraticCurveTo(x + w, y, x + w, y + 24);
+      ctx.lineTo(x + w, y + h - 24);
+      ctx.quadraticCurveTo(x + w, y + h, x + w - 24, y + h);
+      ctx.lineTo(x + 24, y + h);
+      ctx.quadraticCurveTo(x, y + h, x, y + h - 24);
+      ctx.lineTo(x, y + 24);
+      ctx.quadraticCurveTo(x, y, x + 24, y);
+      ctx.closePath();
+      ctx.fill();
+      ctx.stroke();
+    }
+
+    function textColor() { return isNight ? "#f8fafc" : "#172033"; }
+    function subTextColor() { return isNight ? "#cbd5e1" : "#667085"; }
+    function mainColor() { return isNight ? "#f8fafc" : "#172033"; }
+    function groundColor() { return isNight ? "#e5e7eb" : "#475569"; }
+
+    function clearScreen() {
+      const sky = ctx.createLinearGradient(0, 0, 0, H);
+      if (isNight) {
+        sky.addColorStop(0, "#0f172a");
+        sky.addColorStop(.7, "#111827");
+        sky.addColorStop(1, "#1f2937");
+      } else {
+        sky.addColorStop(0, "#e0f2fe");
+        sky.addColorStop(.7, "#f8fafc");
+        sky.addColorStop(1, "#fff7ed");
+      }
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, W, H);
+
+      if (isNight) {
+        ctx.fillStyle = "rgba(255,255,230,.9)";
+        ctx.beginPath();
+        ctx.arc(780, 58, 23, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        const sun = ctx.createRadialGradient(780, 58, 4, 780, 58, 48);
+        sun.addColorStop(0, "rgba(251,191,36,1)");
+        sun.addColorStop(.45, "rgba(251,191,36,.55)");
+        sun.addColorStop(1, "rgba(251,191,36,0)");
+        ctx.fillStyle = sun;
+        ctx.beginPath();
+        ctx.arc(780, 58, 50, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function drawClouds() {
+      ctx.fillStyle = isNight ? "rgba(148,163,184,.35)" : "rgba(203,213,225,.85)";
+      for (const cloud of clouds) {
+        ctx.save();
+        ctx.translate(cloud.x, cloud.y);
+        ctx.scale(cloud.size, cloud.size);
+        ctx.beginPath();
+        ctx.arc(0, 0, 13, 0, Math.PI * 2);
+        ctx.arc(18, -10, 17, 0, Math.PI * 2);
+        ctx.arc(38, 0, 14, 0, Math.PI * 2);
+        ctx.arc(20, 7, 18, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+
+    function updateClouds() {
+      for (const cloud of clouds) {
+        cloud.x -= cloud.speed;
+        if (cloud.x < -80) {
+          cloud.x = W + Math.random() * 260;
+          cloud.y = 40 + Math.random() * 80;
+        }
+      }
+    }
+
+    function drawGround() {
+      ctx.strokeStyle = groundColor();
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(0, groundY);
+      ctx.lineTo(W, groundY);
+      ctx.stroke();
+
+      ctx.strokeStyle = isNight ? "rgba(226,232,240,.55)" : "rgba(71,85,105,.45)";
+      ctx.lineWidth = 1.5;
+      for (let x = groundOffset; x < W; x += 44) {
+        ctx.beginPath();
+        ctx.moveTo(x, groundY + 12);
+        ctx.lineTo(x + 18, groundY + 12);
+        ctx.stroke();
+      }
+    }
+
+    function updateGround() {
+      groundOffset -= gameSpeed;
+      if (groundOffset <= -44) groundOffset = 0;
+    }
+
+    function drawDino() {
+      const c = mainColor();
+      const eye = isNight ? "#0f172a" : "#ffffff";
+
+      if (dino.hasShield) {
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(dino.x + dino.width / 2, dino.y + dino.height / 2, 43, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      if (doubleScoreActive) {
+        ctx.strokeStyle = "#f59e0b";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(dino.x + dino.width / 2, dino.y + dino.height / 2, 50, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      if (dino.isDucking && !dino.isJumping) {
+        roundRect(dino.x - 14, dino.y + 20, 16, 7, 3, c);
+        roundRect(dino.x + 2, dino.y + 12, 42, 22, 5, c);
+        roundRect(dino.x + 35, dino.y + 2, 28, 22, 5, c);
+        roundRect(dino.x + 46, dino.y + 16, 17, 7, 3, c);
+        roundRect(dino.x + 28, dino.y + 8, 10, 12, 3, c);
+        roundRect(dino.x + 22, dino.y + 17, 8, 5, 2, c);
+
+        ctx.fillStyle = eye;
+        ctx.fillRect(dino.x + 49, dino.y + 8, 5, 5);
+
+        if (dino.runFrame === 0) {
+          roundRect(dino.x + 12, dino.y + 30, 8, 9, 2, c);
+          roundRect(dino.x + 30, dino.y + 30, 8, 5, 2, c);
+        } else {
+          roundRect(dino.x + 12, dino.y + 30, 8, 5, 2, c);
+          roundRect(dino.x + 30, dino.y + 30, 8, 9, 2, c);
+        }
+      } else {
+        roundRect(dino.x - 15, dino.y + 28, 18, 8, 3, c);
+        roundRect(dino.x + 3, dino.y + 18, 28, 28, 5, c);
+        roundRect(dino.x + 24, dino.y + 11, 9, 12, 3, c);
+        roundRect(dino.x + 24, dino.y, 28, 24, 5, c);
+        roundRect(dino.x + 45, dino.y + 10, 11, 9, 3, c);
+        roundRect(dino.x + 39, dino.y + 16, 14, 6, 2, c);
+        roundRect(dino.x + 25, dino.y + 28, 8, 5, 2, c);
+
+        roundRect(dino.x + 8, dino.y + 14, 4, 7, 2, c);
+        roundRect(dino.x + 15, dino.y + 10, 4, 10, 2, c);
+        roundRect(dino.x + 22, dino.y + 12, 4, 8, 2, c);
+
+        if (gameState === "gameover") {
+          ctx.strokeStyle = eye;
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.moveTo(dino.x + 37, dino.y + 7);
+          ctx.lineTo(dino.x + 44, dino.y + 14);
+          ctx.moveTo(dino.x + 44, dino.y + 7);
+          ctx.lineTo(dino.x + 37, dino.y + 14);
+          ctx.stroke();
+        } else {
+          ctx.fillStyle = eye;
+          ctx.fillRect(dino.x + 39, dino.y + 8, 5, 5);
+        }
+
+        if (dino.isJumping) {
+          roundRect(dino.x + 9, dino.y + 45, 8, 10, 2, c);
+          roundRect(dino.x + 24, dino.y + 45, 8, 10, 2, c);
+        } else if (dino.runFrame === 0) {
+          roundRect(dino.x + 8, dino.y + 45, 8, 15, 2, c);
+          roundRect(dino.x + 24, dino.y + 45, 8, 9, 2, c);
+        } else {
+          roundRect(dino.x + 8, dino.y + 45, 8, 9, 2, c);
+          roundRect(dino.x + 24, dino.y + 45, 8, 15, 2, c);
+        }
+      }
+    }
+
+    function updateDino() {
+      dino.velocityY += dino.gravity;
+      dino.y += dino.velocityY;
+      if (dino.y + dino.height >= groundY) {
+        dino.y = groundY - dino.height;
+        dino.velocityY = 0;
+        dino.isJumping = false;
+      }
+    }
+
+    function updateDinoAnimation() {
+      if (gameState === "playing" && !dino.isJumping) {
+        dino.runTimer++;
+        if (dino.runTimer >= 7) {
+          dino.runFrame = dino.runFrame === 0 ? 1 : 0;
+          dino.runTimer = 0;
+        }
+      }
+    }
+
+    function jump() {
+      if (!dino.isJumping && !dino.isDucking && gameState === "playing") {
+        dino.velocityY = dino.jumpPower;
+        dino.isJumping = true;
+        sounds.jump();
+      }
+    }
+
+    function duck() {
+      if (gameState === "playing" && !dino.isJumping) {
+        dino.isDucking = true;
+        dino.width = dino.duckWidth;
+        dino.height = dino.duckHeight;
+        dino.y = groundY - dino.height;
+      }
+    }
+
+    function standUp() {
+      if (!dino.isJumping) {
+        dino.isDucking = false;
+        dino.width = dino.normalWidth;
+        dino.height = dino.normalHeight;
+        dino.y = groundY - dino.height;
+      }
+    }
+
+    function getDinoBox() {
+      return {
+        x: dino.x + 7,
+        y: dino.y + 7,
+        width: dino.width - 14,
+        height: dino.height - 10
+      };
+    }
+
+    function isBoxTouching(a, b) {
+      return (
+        a.x < b.x + b.width &&
+        a.x + a.width > b.x &&
+        a.y < b.y + b.height &&
+        a.y + a.height > b.y
+      );
+    }
+
+    function createCactus(x) {
+      const tall = Math.random() > .68;
+      return {
+        x: x,
+        y: groundY - (tall ? 56 : 45),
+        width: tall ? 28 : 25,
+        height: tall ? 56 : 45,
+        passed: false
+      };
+    }
+
+    function spawnCactusGroup() {
+      const count = 1 + Math.floor(Math.random() * 3);
+      for (let i = 0; i < count; i++) {
+        cactuses.push(createCactus(W + i * 34));
+      }
+    }
+
+    function drawCactuses() {
+      const body = isNight ? "#e2e8f0" : "#15803d";
+      const light = isNight ? "#f8fafc" : "#22c55e";
+
+      for (const c of cactuses) {
+        roundRect(c.x, c.y, c.width, c.height, 6, body);
+        roundRect(c.x - 10, c.y + c.height * .35, 13, 8, 4, body);
+        roundRect(c.x - 10, c.y + c.height * .20, 7, 22, 4, body);
+        roundRect(c.x + c.width - 1, c.y + c.height * .48, 13, 8, 4, body);
+        roundRect(c.x + c.width + 5, c.y + c.height * .32, 7, 22, 4, body);
+        ctx.fillStyle = light;
+        ctx.fillRect(c.x + 7, c.y + 8, 3, c.height - 14);
+      }
+    }
+
+    function updateCactuses() {
+      for (const c of cactuses) {
+        c.x -= gameSpeed;
+        if (!c.passed && c.x + c.width < dino.x) {
+          addScore(10);
+          c.passed = true;
+        }
+      }
+      cactuses = cactuses.filter(function(c) { return c.x + c.width > 0; });
+    }
+
+    function createBird() {
+      return {
+        x: W + 50,
+        y: groundY - 67,
+        width: 46,
+        height: 27,
+        passed: false,
+        wingFrame: 0,
+        wingTimer: 0
+      };
+    }
+
+    function spawnBird() {
+      birds.push(createBird());
+    }
+
+    function drawBirds() {
+      const c = isNight ? "#f8fafc" : "#1f2937";
+      for (const b of birds) {
+        roundRect(b.x + 8, b.y + 9, 28, 11, 5, c);
+        roundRect(b.x + 35, b.y + 5, 11, 11, 4, c);
+        roundRect(b.x + 44, b.y + 9, 9, 4, 2, c);
+        if (b.wingFrame === 0) {
+          roundRect(b.x + 14, b.y, 16, 8, 4, c);
+        } else {
+          roundRect(b.x + 14, b.y + 20, 16, 8, 4, c);
+        }
+        ctx.fillStyle = isNight ? "#0f172a" : "#fff";
+        ctx.fillRect(b.x + 39, b.y + 8, 3, 3);
+      }
+    }
+
+    function updateBirds() {
+      for (const b of birds) {
+        b.x -= gameSpeed + 1.1;
+        b.wingTimer++;
+        if (b.wingTimer >= 9) {
+          b.wingFrame = b.wingFrame === 0 ? 1 : 0;
+          b.wingTimer = 0;
+        }
+        if (!b.passed && b.x + b.width < dino.x) {
+          addScore(20);
+          b.passed = true;
+        }
+      }
+      birds = birds.filter(function(b) { return b.x + b.width > 0; });
+    }
+
+    function hasObstacleOnScreen() {
+      return cactuses.length > 0 || birds.length > 0;
+    }
+
+    function setNextObstacleTime() {
+      const cfg = difficultyConfig[difficulty];
+      const bonus = Math.floor(score / 220) * 5;
+      nextObstacleTime = cfg.maxGap - bonus + Math.random() * 38;
+      if (nextObstacleTime < cfg.minGap) nextObstacleTime = cfg.minGap;
+    }
+
+    function updateObstacleSpawner() {
+      obstacleTimer++;
+      if (hasObstacleOnScreen()) return;
+      if (obstacleTimer < nextObstacleTime) return;
+
+      obstacleTimer = 0;
+
+      if (score < 150) {
+        spawnCactusGroup();
+      } else {
+        const cfg = difficultyConfig[difficulty];
+        if (Math.random() < 1 - cfg.birdChance) spawnCactusGroup();
+        else spawnBird();
+      }
+
+      setNextObstacleTime();
+    }
+
+    function createCoin() {
+      return {
+        x: W + 50,
+        y: groundY - 78 - Math.random() * 58,
+        width: 22,
+        height: 22,
+        spin: Math.random() * 10
+      };
+    }
+
+    function updateCoins() {
+      coinTimer++;
+      if (score > 80 && coinTimer >= nextCoinTime && coinItems.length < 4) {
+        coinItems.push(createCoin());
+        coinTimer = 0;
+        nextCoinTime = 78 + Math.random() * 118;
+      }
+
+      for (const c of coinItems) {
+        c.x -= gameSpeed;
+        c.spin += .15;
+      }
+
+      coinItems = coinItems.filter(function(c) { return c.x + c.width > 0; });
+    }
+
+    function drawCoins() {
+      for (const c of coinItems) {
+        const squash = Math.abs(Math.sin(c.spin)) * .45 + .55;
+        ctx.save();
+        ctx.translate(c.x + 11, c.y + 11);
+        ctx.scale(squash, 1);
+        ctx.fillStyle = "#fbbf24";
+        ctx.beginPath();
+        ctx.arc(0, 0, 11, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = "#b45309";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, 7, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "#fff7ed";
+        ctx.font = "bold 13px Arial";
+        ctx.fillText("$", -4, 5);
+        ctx.restore();
+      }
+    }
+
+    function checkCoinPickup() {
+      const db = getDinoBox();
+      for (let i = coinItems.length - 1; i >= 0; i--) {
+        const c = coinItems[i];
+
+        if (shopData.coinMagnet) {
+          const dx = dino.x + dino.width / 2 - (c.x + 11);
+          const dy = dino.y + dino.height / 2 - (c.y + 11);
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 120) {
+            c.x += dx * .12;
+            c.y += dy * .12;
+          }
+        }
+
+        if (isBoxTouching(db, { x: c.x, y: c.y, width: c.width, height: c.height })) {
+          coins++;
+          if (adminInfiniteCoins) {
+            walletCoins = 999999;
+          } else {
+            walletCoins++;
+          }
+          saveShopData();
+          addScore(15);
+          sounds.coin();
+          coinItems.splice(i, 1);
+        }
+      }
+    }
+
+    function createShield() {
+      return { x: W + 50, y: groundY - 108, width: 30, height: 30 };
+    }
+
+    function updateShields() {
+      shieldTimer++;
+      if (score > 200 && shieldTimer >= nextShieldTime && shields.length === 0) {
+        shields.push(createShield());
+        shieldTimer = 0;
+        nextShieldTime = 360 + Math.random() * 320;
+      }
+
+      for (const s of shields) s.x -= gameSpeed;
+      shields = shields.filter(function(s) { return s.x + s.width > 0; });
+    }
+
+    function drawShields() {
+      for (const s of shields) {
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(s.x + 15, s.y + 15, 15, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.fillStyle = "#0284c7";
+        ctx.font = "bold 17px Arial";
+        ctx.fillText("S", s.x + 10, s.y + 21);
+      }
+    }
+
+    function checkShieldPickup() {
+      const db = getDinoBox();
+      for (let i = 0; i < shields.length; i++) {
+        const s = shields[i];
+        if (isBoxTouching(db, { x: s.x, y: s.y, width: s.width, height: s.height })) {
+          dino.hasShield = true;
+          sounds.pickup();
+          shields.splice(i, 1);
+          return;
+        }
+      }
+    }
+
+    function createDoubleItem() {
+      return { x: W + 50, y: groundY - 122, width: 34, height: 30 };
+    }
+
+    function updateDoubleItems() {
+      doubleTimer++;
+      if (score > 300 && doubleTimer >= nextDoubleTime && doubleItems.length === 0) {
+        doubleItems.push(createDoubleItem());
+        doubleTimer = 0;
+        nextDoubleTime = 560 + Math.random() * 460;
+      }
+
+      for (const item of doubleItems) item.x -= gameSpeed;
+      doubleItems = doubleItems.filter(function(i) { return i.x + i.width > 0; });
+
+      if (doubleScoreActive) {
+        doubleScoreTimer--;
+        if (doubleScoreTimer <= 0) doubleScoreActive = false;
+      }
+    }
+
+    function drawDoubleItems() {
+      for (const item of doubleItems) {
+        roundRect(item.x, item.y, item.width, item.height, 8, "#f97316");
+        ctx.fillStyle = "white";
+        ctx.font = "bold 16px Arial";
+        ctx.fillText("2x", item.x + 7, item.y + 20);
+      }
+    }
+
+    function checkDoublePickup() {
+      const db = getDinoBox();
+      for (let i = 0; i < doubleItems.length; i++) {
+        const item = doubleItems[i];
+        if (isBoxTouching(db, { x: item.x, y: item.y, width: item.width, height: item.height })) {
+          doubleScoreActive = true;
+          doubleScoreTimer = 600;
+          sounds.power();
+          doubleItems.splice(i, 1);
+          return;
+        }
+      }
+    }
+
+    function useShield() {
+      dino.hasShield = false;
+      sounds.shield();
+      cactuses = [];
+      birds = [];
+      obstacleTimer = 0;
+      setNextObstacleTime();
+    }
+
+    function triggerGameOver() {
+      gameState = "gameover";
+      sounds.over();
+
+      if (score > bestScore) {
+        bestScore = score;
+        bestDifficulty = getDifficultyName();
+        saveBestScore();
+      }
+    }
+
+    function checkCollision() {
+      if (adminInvincible) return;
+
+      const db = getDinoBox();
+
+      for (const c of cactuses) {
+        const cb = { x: c.x + 3, y: c.y + 4, width: c.width - 6, height: c.height - 4 };
+        if (isBoxTouching(db, cb)) {
+          if (dino.hasShield) useShield();
+          else triggerGameOver();
+          return;
+        }
+      }
+
+      for (const b of birds) {
+        const bb = { x: b.x + 4, y: b.y + 4, width: b.width - 8, height: b.height - 8 };
+        if (isBoxTouching(db, bb)) {
+          if (dino.hasShield) useShield();
+          else triggerGameOver();
+          return;
+        }
+      }
+    }
+
+    function updateScoreAndSpeed() {
+      scoreTimer++;
+      if (scoreTimer >= 6) {
+        addScore(1);
+        scoreTimer = 0;
+      }
+
+      gameSpeed = (baseSpeed + Math.floor(score / 100) * .5) * adminSpeedMultiplier;
+      if (gameSpeed > 30) gameSpeed = 30;
+    }
+
+    function updateDayNight() {
+      const stage = Math.floor(score / 350);
+      isNight = stage % 2 === 1;
+    }
+
+    function drawPill(x, y, text, color) {
+      ctx.font = "bold 15px Arial";
+      const tw = ctx.measureText(text).width;
+      roundRect(x, y, tw + 20, 28, 14, isNight ? "rgba(255,255,255,.12)" : "rgba(255,255,255,.72)");
+      ctx.fillStyle = color || textColor();
+      ctx.fillText(text, x + 10, y + 19);
+    }
+
+    function drawHUD() {
+      drawPill(18, 18, "空格跳跃  ↓蹲下  P暂停", subTextColor());
+      drawPill(18, 52, "难度：" + getDifficultyName(), difficultyConfig[difficulty].color);
+      drawPill(18, 86, "速度：" + gameSpeed.toFixed(1), subTextColor());
+      drawPill(18, 120, dino.hasShield ? "护盾：有" : "护盾：无", dino.hasShield ? "#38bdf8" : subTextColor());
+
+      if (doubleScoreActive) {
+        drawPill(18, 154, "双倍分：" + Math.ceil(doubleScoreTimer / 60) + "秒", "#f59e0b");
+      } else {
+        drawPill(18, 154, "双倍分：无", subTextColor());
+      }
+
+      ctx.textAlign = "right";
+      ctx.fillStyle = textColor();
+      ctx.font = "bold 20px Arial";
+      ctx.fillText("分数 " + score, W - 24, 34);
+      ctx.font = "bold 16px Arial";
+      ctx.fillText("最高 " + bestScore, W - 24, 60);
+      ctx.fillText("本局金币 " + coins, W - 24, 86);
+      ctx.fillText(adminInfiniteCoins ? "钱包 无限" : "钱包 " + walletCoins, W - 24, 112);
+
+      if (adminInvincible || adminSpeedMultiplier !== 1 || adminInfiniteCoins) {
+        ctx.fillStyle = "#a855f7";
+        ctx.fillText("后台 x" + adminSpeedMultiplier.toFixed(1), W - 24, 138);
+      }
+
+      ctx.textAlign = "left";
+    }
+
+    function drawMenuScreen() {
+      strokePanel(215, 44, 470, 246);
+      ctx.textAlign = "center";
+      ctx.fillStyle = textColor();
+      ctx.font = "bold 34px Arial";
+      ctx.fillText("星尘小恐龙跑酷", W / 2, 92);
+
+      ctx.font = "16px Arial";
+      ctx.fillStyle = subTextColor();
+      ctx.fillText("吃金币，买道具，跑出最高纪录", W / 2, 122);
+
+      ctx.fillStyle = textColor();
+      ctx.font = "bold 18px Arial";
+      ctx.fillText("按 空格 或 点击画面 开始", W / 2, 155);
+
+      ctx.font = "16px Arial";
+      ctx.fillText("1 简单    2 普通    3 困难    B 金币商城", W / 2, 184);
+
+      ctx.fillStyle = difficultyConfig[difficulty].color;
+      ctx.font = "bold 17px Arial";
+      ctx.fillText("当前难度：" + getDifficultyName(), W / 2, 212);
+
+      ctx.fillStyle = "#f59e0b";
+      ctx.font = "bold 17px Arial";
+      ctx.fillText(adminInfiniteCoins ? "钱包金币：无限" : "钱包金币：" + walletCoins, W / 2, 238);
+
+      ctx.fillStyle = subTextColor();
+      ctx.font = "15px Arial";
+      ctx.fillText("最高分：" + bestScore + "    长按 X 打开后台", W / 2, 265);
+      ctx.textAlign = "left";
+    }
+
+    function drawShopCard(x, y, title, price, status, color) {
+      strokePanel(x, y, 310, 70);
+      ctx.textAlign = "left";
+      ctx.fillStyle = color;
+      ctx.fillRect(x + 12, y + 12, 6, 46);
+
+      ctx.fillStyle = textColor();
+      ctx.font = "bold 17px Arial";
+      ctx.fillText(title, x + 28, y + 28);
+
+      ctx.fillStyle = "#f59e0b";
+      ctx.font = "bold 15px Arial";
+      ctx.fillText(price, x + 28, y + 52);
+
+      ctx.fillStyle = subTextColor();
+      ctx.font = "14px Arial";
+      ctx.fillText(status, x + 150, y + 52);
+    }
+
+    function drawShopScreen() {
+      strokePanel(90, 26, 720, 268);
+      ctx.textAlign = "center";
+      ctx.fillStyle = textColor();
+      ctx.font = "bold 32px Arial";
+      ctx.fillText("金币商城", W / 2, 62);
+
+      ctx.fillStyle = "#f59e0b";
+      ctx.font = "bold 18px Arial";
+      ctx.fillText(adminInfiniteCoins ? "当前钱包金币：无限" : "当前钱包金币：" + walletCoins, W / 2, 90);
+
+      drawShopCard(120, 108, "1. 开局护盾", "30 金币", "库存：" + shopData.startShield, "#38bdf8");
+      drawShopCard(470, 108, "2. 开局双倍分", "45 金币", "库存：" + shopData.startDouble, "#f59e0b");
+      drawShopCard(120, 188, "3. 弹跳强化", "120 金币", shopData.jumpBoost ? "已拥有" : "永久升级", "#22c55e");
+      drawShopCard(470, 188, "4. 吸金币", "180 金币", shopData.coinMagnet ? "已拥有" : "永久升级", "#fb7185");
+
+      ctx.fillStyle = subTextColor();
+      ctx.font = "15px Arial";
+      ctx.fillText("按 1 / 2 / 3 / 4 购买，按 B 返回菜单", W / 2, 282);
+
+      if (shopMessageTimer > 0) {
+        ctx.fillStyle = textColor();
+        ctx.font = "bold 15px Arial";
+        ctx.fillText(shopMessage, W / 2, 302);
+      }
+
+      ctx.textAlign = "left";
+    }
+
+    function drawAdminLoginScreen() {
+      strokePanel(245, 72, 410, 178);
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#a855f7";
+      ctx.font = "bold 30px Arial";
+      ctx.fillText("后台密码", W / 2, 118);
+
+      ctx.fillStyle = textColor();
+      ctx.font = "18px Arial";
+      ctx.fillText("请输入密码，然后按 Enter", W / 2, 154);
+
+      ctx.font = "bold 26px Arial";
+      const masked = passwordInput.split("").map(function() { return "●"; }).join(" ");
+      ctx.fillText(masked || "_ _ _ _", W / 2, 192);
+
+      ctx.fillStyle = subTextColor();
+      ctx.font = "14px Arial";
+      ctx.fillText("Esc / B 取消", W / 2, 225);
+
+      ctx.textAlign = "left";
+    }
+
+    function drawAdminButton(id, x, y, w, h, label, color) {
+      adminButtons.push({ id: id, x: x, y: y, w: w, h: h });
+
+      roundRect(x, y, w, h, 12, color || "rgba(255,255,255,.75)");
+      ctx.strokeStyle = isNight ? "rgba(255,255,255,.22)" : "rgba(15,23,42,.14)";
+      ctx.lineWidth = 1;
+      ctx.strokeRect(x, y, w, h);
+
+      ctx.fillStyle = textColor();
+      ctx.font = "bold 14px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText(label, x + w / 2, y + 24);
+      ctx.textAlign = "left";
+    }
+
+    function drawAdminPanelScreen() {
+      adminButtons = [];
+      strokePanel(150, 28, 600, 270);
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#a855f7";
+      ctx.font = "bold 32px Arial";
+      ctx.fillText("后台管理", W / 2, 66);
+
+      ctx.fillStyle = textColor();
+      ctx.font = "16px Arial";
+      ctx.fillText("无限金币：" + (adminInfiniteCoins ? "开启" : "关闭") + "    无视障碍：" + (adminInvincible ? "开启" : "关闭"), W / 2, 98);
+      ctx.fillText("速度倍率：" + adminSpeedMultiplier.toFixed(1) + "x", W / 2, 124);
+
+      drawAdminButton("coins", 190, 146, 150, 38, adminInfiniteCoins ? "关闭无限金币" : "开启无限金币", "#ddd6fe");
+      drawAdminButton("invincible", 375, 146, 150, 38, adminInvincible ? "关闭无视障碍" : "开启无视障碍", "#bfdbfe");
+      drawAdminButton("speedDown", 560, 146, 50, 38, "-速", "#fecaca");
+      drawAdminButton("speedUp", 625, 146, 50, 38, "+速", "#bbf7d0");
+
+      drawAdminButton("speedReset", 190, 198, 150, 38, "速度恢复 1.0", "#fed7aa");
+      drawAdminButton("changePassword", 375, 198, 150, 38, "修改后台密码", "#fef08a");
+      drawAdminButton("exportFile", 560, 198, 115, 38, "导出文件", "#c7d2fe");
+
+      drawAdminButton("exit", 375, 248, 150, 34, "退出后台", "#e5e7eb");
+
+      ctx.fillStyle = subTextColor();
+      ctx.font = "13px Arial";
+      ctx.textAlign = "center";
+      ctx.fillText("键盘：1/2 切换，+/- 调速度，0 恢复，3 改密码，4 导出，5 退出", W / 2, 288);
+
+      ctx.textAlign = "left";
+    }
+
+    function drawAdminChangePasswordScreen() {
+      strokePanel(245, 72, 410, 178);
+
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#a855f7";
+      ctx.font = "bold 30px Arial";
+      ctx.fillText("修改后台密码", W / 2, 118);
+
+      ctx.fillStyle = textColor();
+      ctx.font = "18px Arial";
+      ctx.fillText("输入新密码，然后按 Enter", W / 2, 154);
+
+      ctx.font = "bold 26px Arial";
+      const masked = newPasswordInput.split("").map(function() { return "●"; }).join(" ");
+      ctx.fillText(masked || "_ _ _ _", W / 2, 192);
+
+      ctx.fillStyle = subTextColor();
+      ctx.font = "14px Arial";
+      ctx.fillText("改完后请回后台点击“导出文件”", W / 2, 225);
+
+      ctx.textAlign = "left";
+    }
+
+    function drawPauseScreen() {
+      ctx.fillStyle = isNight ? "rgba(255,255,255,.12)" : "rgba(15,23,42,.13)";
+      ctx.fillRect(0, 0, W, H);
+      strokePanel(320, 92, 260, 118);
+      ctx.textAlign = "center";
+      ctx.fillStyle = textColor();
+      ctx.font = "bold 32px Arial";
+      ctx.fillText("PAUSED", W / 2, 142);
+      ctx.font = "16px Arial";
+      ctx.fillStyle = subTextColor();
+      ctx.fillText("按 P 继续游戏", W / 2, 173);
+      ctx.textAlign = "left";
+    }
+
+    function drawGameOverScreen() {
+      strokePanel(285, 48, 330, 228);
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#fb7185";
+      ctx.font = "bold 34px Arial";
+      ctx.fillText("GAME OVER", W / 2, 98);
+
+      ctx.fillStyle = textColor();
+      ctx.font = "18px Arial";
+      ctx.fillText("最终分数：" + score, W / 2, 136);
+      ctx.fillText("本局金币：" + coins, W / 2, 166);
+      ctx.fillText(adminInfiniteCoins ? "钱包金币：无限" : "钱包金币：" + walletCoins, W / 2, 196);
+      ctx.fillText("最高分：" + bestScore, W / 2, 226);
+
+      ctx.fillStyle = subTextColor();
+      ctx.font = "15px Arial";
+      ctx.fillText("按 R 回菜单，再按 B 可打开金币商城", W / 2, 255);
+      ctx.textAlign = "left";
+    }
+
+    function buyShopItem(id) {
+      if (gameState !== "shop") return;
+
+      if (id === 1) {
+        if (!adminInfiniteCoins && walletCoins < 30) return showShopMessage("金币不够：开局护盾需要 30 金币");
+        if (!adminInfiniteCoins) walletCoins -= 30;
+        shopData.startShield++;
+        saveShopData();
+        sounds.pickup();
+        showShopMessage("购买成功：开局护盾 +1");
+      }
+
+      if (id === 2) {
+        if (!adminInfiniteCoins && walletCoins < 45) return showShopMessage("金币不够：开局双倍分需要 45 金币");
+        if (!adminInfiniteCoins) walletCoins -= 45;
+        shopData.startDouble++;
+        saveShopData();
+        sounds.pickup();
+        showShopMessage("购买成功：开局双倍分 +1");
+      }
+
+      if (id === 3) {
+        if (shopData.jumpBoost) return showShopMessage("你已经拥有弹跳强化");
+        if (!adminInfiniteCoins && walletCoins < 120) return showShopMessage("金币不够：弹跳强化需要 120 金币");
+        if (!adminInfiniteCoins) walletCoins -= 120;
+        shopData.jumpBoost = true;
+        saveShopData();
+        sounds.power();
+        showShopMessage("购买成功：永久弹跳强化");
+      }
+
+      if (id === 4) {
+        if (shopData.coinMagnet) return showShopMessage("你已经拥有吸金币");
+        if (!adminInfiniteCoins && walletCoins < 180) return showShopMessage("金币不够：吸金币需要 180 金币");
+        if (!adminInfiniteCoins) walletCoins -= 180;
+        shopData.coinMagnet = true;
+        saveShopData();
+        sounds.power();
+        showShopMessage("购买成功：永久吸金币");
+      }
+    }
+
+    function resetGame() {
+      score = 0;
+      coins = 0;
+      scoreTimer = 0;
+      isNight = false;
+      groundOffset = 0;
+      doubleScoreActive = false;
+      doubleScoreTimer = 0;
+
+      applyDifficulty();
+
+      if (adminInfiniteCoins) {
+        walletCoins = 999999;
+        saveShopData();
+      }
+
+      dino.width = dino.normalWidth;
+      dino.height = dino.normalHeight;
+      dino.y = groundY - dino.height;
+      dino.velocityY = 0;
+      dino.isJumping = false;
+      dino.isDucking = false;
+      dino.hasShield = false;
+      dino.runFrame = 0;
+      dino.runTimer = 0;
+      dino.jumpPower = shopData.jumpBoost ? -14.2 : -12.5;
+
+      cactuses = [];
+      birds = [];
+      coinItems = [];
+      shields = [];
+      doubleItems = [];
+
+      obstacleTimer = 0;
+      nextObstacleTime = 90;
+      coinTimer = 0;
+      nextCoinTime = 100;
+      shieldTimer = 0;
+      nextShieldTime = 420;
+      doubleTimer = 0;
+      nextDoubleTime = 620;
+    }
+
+    function startGame() {
+      resetGame();
+
+      if (shopData.startShield > 0) {
+        dino.hasShield = true;
+        shopData.startShield--;
+      }
+
+      if (shopData.startDouble > 0) {
+        doubleScoreActive = true;
+        doubleScoreTimer = 360;
+        shopData.startDouble--;
+      }
+
+      saveShopData();
+      gameState = "playing";
+    }
+
+    function backToMenu() {
+      resetGame();
+      gameState = "menu";
+    }
+
+    function togglePause() {
+      if (gameState === "playing") {
+        previousGameState = "playing";
+        gameState = "paused";
+        sounds.pause();
+        return;
+      }
+
+      if (gameState === "paused") {
+        gameState = previousGameState;
+        sounds.pause();
+      }
+    }
+
+    function openShop() {
+      if (gameState === "menu") {
+        gameState = "shop";
+        sounds.select();
+      }
+    }
+
+    function closeShop() {
+      if (gameState === "shop") {
+        gameState = "menu";
+        sounds.select();
+      }
+    }
+
+    function openAdminLogin() {
+      passwordInput = "";
+      gameState = "adminLogin";
+      sounds.select();
+    }
+
+    function openAdminPanel() {
+      gameState = "adminPanel";
+      sounds.select();
+    }
+
+    function closeAdminPanel() {
+      gameState = "menu";
+      sounds.select();
+    }
+
+    async function handleAdminPasswordKey(event) {
+      if (event.key >= "0" && event.key <= "9") {
+        if (passwordInput.length < 8) {
+          passwordInput += event.key;
+          sounds.select();
+        }
+        return;
+      }
+
+      if (event.code === "Backspace") {
+        passwordInput = passwordInput.slice(0, -1);
+        sounds.select();
+        return;
+      }
+
+      if (event.code === "Enter") {
+        const inputHash = await sha256(passwordInput);
+
+        if (inputHash === adminPasswordHash) {
+          openAdminPanel();
+        } else {
+          passwordInput = "";
+          showShopMessage("密码错误");
+          sounds.over();
+        }
+        return;
+      }
+
+      if (event.code === "Escape" || event.code === "KeyB") {
+        gameState = "menu";
+      }
+    }
+
+    async function changeAdminPassword() {
+      if (newPasswordInput.length < 4) {
+        showShopMessage("新密码至少 4 位数字");
+        sounds.over();
+        return;
+      }
+
+      const newHash = await sha256(newPasswordInput);
+      savePasswordHash(newHash);
+
+      newPasswordInput = "";
+      sounds.power();
+      showShopMessage("密码已修改，请点击导出文件");
+      openAdminPanel();
+    }
+
+    function handleAdminChangePasswordKey(event) {
+      if (event.key >= "0" && event.key <= "9") {
+        if (newPasswordInput.length < 8) {
+          newPasswordInput += event.key;
+          sounds.select();
+        }
+        return;
+      }
+
+      if (event.code === "Backspace") {
+        newPasswordInput = newPasswordInput.slice(0, -1);
+        sounds.select();
+        return;
+      }
+
+      if (event.code === "Enter") {
+        changeAdminPassword();
+        return;
+      }
+
+      if (event.code === "Escape" || event.code === "KeyB") {
+        newPasswordInput = "";
+        openAdminPanel();
+      }
+    }
+
+    function handleAdminPanelKey(event) {
+      if (event.code === "Digit1") toggleInfiniteCoins();
+      if (event.code === "Digit2") toggleInvincible();
+      if (event.code === "Equal" || event.code === "NumpadAdd") changeSpeed(0.1);
+      if (event.code === "Minus" || event.code === "NumpadSubtract") changeSpeed(-0.1);
+
+      if (event.code === "Digit0") {
+        adminSpeedMultiplier = 1;
+        saveAdminData();
+        sounds.select();
+      }
+
+      if (event.code === "Digit3") {
+        newPasswordInput = "";
+        gameState = "adminChangePassword";
+        sounds.select();
+      }
+
+      if (event.code === "Digit4") downloadPasswordUpdatedFile();
+      if (event.code === "Digit5") closeAdminPanel();
+
+      if (event.code === "Escape" || event.code === "KeyB" || event.code === "KeyX") closeAdminPanel();
+    }
+
+    function toggleInfiniteCoins() {
+      adminInfiniteCoins = !adminInfiniteCoins;
+      if (adminInfiniteCoins) {
+        walletCoins = 999999;
+        saveShopData();
+      }
+      saveAdminData();
+      sounds.power();
+    }
+
+    function toggleInvincible() {
+      adminInvincible = !adminInvincible;
+      saveAdminData();
+      sounds.power();
+    }
+
+    function changeSpeed(delta) {
+      adminSpeedMultiplier += delta;
+      if (adminSpeedMultiplier > 3) adminSpeedMultiplier = 3;
+      if (adminSpeedMultiplier < .3) adminSpeedMultiplier = .3;
+      adminSpeedMultiplier = Math.round(adminSpeedMultiplier * 10) / 10;
+      saveAdminData();
+      sounds.select();
+    }
+
+    function updateWorld() {
+      updateDino();
+      updateDinoAnimation();
+      updateObstacleSpawner();
+      updateCactuses();
+      updateBirds();
+      updateCoins();
+      checkCoinPickup();
+      updateShields();
+      checkShieldPickup();
+      updateDoubleItems();
+      checkDoublePickup();
+      updateScoreAndSpeed();
+      updateDayNight();
+      updateClouds();
+      updateGround();
+      checkCollision();
+    }
+
+    function drawWorld() {
+      drawClouds();
+      drawGround();
+      drawCoins();
+      drawDoubleItems();
+      drawShields();
+      drawDino();
+      drawCactuses();
+      drawBirds();
+      drawHUD();
+    }
+
+    function gameLoop() {
+      clearScreen();
+
+      if (gameState === "playing") updateWorld();
+
+      if (
+        gameState === "menu" ||
+        gameState === "shop" ||
+        gameState === "adminLogin" ||
+        gameState === "adminPanel" ||
+        gameState === "adminChangePassword"
+      ) {
+        updateClouds();
+        updateGround();
+        if (shopMessageTimer > 0) shopMessageTimer--;
+      }
+
+      drawWorld();
+
+      if (gameState === "menu") drawMenuScreen();
+      if (gameState === "shop") drawShopScreen();
+      if (gameState === "adminLogin") drawAdminLoginScreen();
+      if (gameState === "adminPanel") drawAdminPanelScreen();
+      if (gameState === "adminChangePassword") drawAdminChangePasswordScreen();
+
+      if (gameState === "paused") {
+        drawHUD();
+        drawPauseScreen();
+      }
+
+      if (gameState === "gameover") drawGameOverScreen();
+
+      requestAnimationFrame(gameLoop);
+    }
+
+    document.addEventListener("keydown", function(event) {
+      initAudio();
+
+      if (gameState === "adminLogin") {
+        handleAdminPasswordKey(event);
+        return;
+      }
+
+      if (gameState === "adminPanel") {
+        handleAdminPanelKey(event);
+        return;
+      }
+
+      if (gameState === "adminChangePassword") {
+        handleAdminChangePasswordKey(event);
+        return;
+      }
+
+      if (event.code === "KeyX" && !xHoldTimer) {
+        xHoldTimer = setTimeout(function() {
+          xHoldTimer = null;
+          openAdminLogin();
+        }, 650);
+      }
+
+      if (gameState === "shop") {
+        if (event.code === "Digit1") buyShopItem(1);
+        if (event.code === "Digit2") buyShopItem(2);
+        if (event.code === "Digit3") buyShopItem(3);
+        if (event.code === "Digit4") buyShopItem(4);
+        if (event.code === "KeyB") closeShop();
+        return;
+      }
+
+      if (gameState === "menu") {
+        if (event.code === "Digit1") selectDifficulty("easy");
+        if (event.code === "Digit2") selectDifficulty("normal");
+        if (event.code === "Digit3") selectDifficulty("hard");
+        if (event.code === "KeyB") openShop();
+      }
+
+      if (event.code === "Space") {
+        event.preventDefault();
+        if (gameState === "menu") startGame();
+        else jump();
+      }
+
+      if (event.code === "ArrowDown") {
+        event.preventDefault();
+        duck();
+      }
+
+      if (event.code === "KeyP") togglePause();
+
+      if (event.code === "KeyR") {
+        if (gameState === "gameover") backToMenu();
+      }
+    });
+
+    document.addEventListener("keyup", function(event) {
+      if (event.code === "ArrowDown") standUp();
+
+      if (event.code === "KeyX" && xHoldTimer) {
+        clearTimeout(xHoldTimer);
+        xHoldTimer = null;
+      }
+    });
+
+    function selectDifficulty(d) {
+      if (gameState !== "menu") return;
+      difficulty = d;
+      applyDifficulty();
+      sounds.select();
+    }
+
+    document.getElementById("startBtn").addEventListener("click", function() {
+      initAudio();
+      if (gameState === "menu" || gameState === "gameover") startGame();
+      else jump();
+    });
+
+    document.getElementById("duckBtn").addEventListener("mousedown", function() {
+      initAudio();
+      duck();
+    });
+
+    document.getElementById("duckBtn").addEventListener("mouseup", standUp);
+    document.getElementById("duckBtn").addEventListener("mouseleave", standUp);
+
+    document.getElementById("pauseBtn").addEventListener("click", function() {
+      initAudio();
+      togglePause();
+    });
+
+    document.getElementById("easyBtn").addEventListener("click", function() {
+      initAudio();
+      selectDifficulty("easy");
+    });
+
+    document.getElementById("normalBtn").addEventListener("click", function() {
+      initAudio();
+      selectDifficulty("normal");
+    });
+
+    document.getElementById("hardBtn").addEventListener("click", function() {
+      initAudio();
+      selectDifficulty("hard");
+    });
+
+    document.getElementById("shopBtn").addEventListener("click", function() {
+      initAudio();
+      if (gameState === "menu") openShop();
+      else if (gameState === "shop") closeShop();
+    });
+
+    document.getElementById("clearBtn").addEventListener("click", function() {
+      initAudio();
+      if (gameState === "menu") clearRecords();
+    });
+
+    canvas.addEventListener("click", function(event) {
+      initAudio();
+
+      const rect = canvas.getBoundingClientRect();
+      const x = (event.clientX - rect.left) * (canvas.width / rect.width);
+      const y = (event.clientY - rect.top) * (canvas.height / rect.height);
+
+      if (gameState === "adminPanel") {
+        for (const btn of adminButtons) {
+          if (x >= btn.x && x <= btn.x + btn.w && y >= btn.y && y <= btn.y + btn.h) {
+            if (btn.id === "coins") toggleInfiniteCoins();
+            if (btn.id === "invincible") toggleInvincible();
+            if (btn.id === "speedUp") changeSpeed(0.1);
+            if (btn.id === "speedDown") changeSpeed(-0.1);
+
+            if (btn.id === "speedReset") {
+              adminSpeedMultiplier = 1;
+              saveAdminData();
+              sounds.select();
+            }
+
+            if (btn.id === "changePassword") {
+              newPasswordInput = "";
+              gameState = "adminChangePassword";
+              sounds.select();
+            }
+
+            if (btn.id === "exportFile") downloadPasswordUpdatedFile();
+            if (btn.id === "exit") closeAdminPanel();
+            return;
+          }
+        }
+      }
+
+      if (gameState === "menu") startGame();
+      else if (gameState === "gameover") backToMenu();
+    });
+
+    localStorage.removeItem("dinoAdminUnlockedStable");
+
+    applyDifficulty();
+    gameLoop();
+  </script>
+</body>
+</html>
