@@ -40,15 +40,13 @@
         .auth-input:focus { border-color: #07c160; }
         .auth-submit { width: 100%; padding: 12px; background: #07c160; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         .auth-toggle { margin-top: 20px; font-size: 13px; color: #576b95; cursor: pointer; display: inline-block; }
-        
-        /* 验证码小组件样式，默认登录状态下隐藏 */
         .captcha-container { margin: 15px 0; display: none; justify-content: center; }
 
-        /* 新增：文件渲染卡片样式 */
+        /* 文件卡片样式 */
         .file-card { display: flex; align-items: center; gap: 10px; background: rgba(0,0,0,0.02); padding: 8px 12px; border-radius: 4px; border: 1px dashed #ccc; margin-top: 4px; text-align: left; }
         .file-icon { font-size: 24px; }
         .file-info-name { font-weight: bold; font-size: 13px; color: #333; word-break: break-all; }
-        .file-download-link { color: #576b95; font-size: 12px; text-decoration: underline; font-weight: bold; display: inline-block; margin-top: 2px; }
+        .file-download-link { color: #576b95; font-size: 12px; text-decoration: underline; font-weight: bold; display: inline-block; margin-top: 2px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -84,9 +82,8 @@
             <div class="input-area">
                 <textarea id="textInput" placeholder="输入消息...按 Enter 键发送" onkeydown="handleKeyDown(event)"></textarea>
                 <div class="btn-container">
-                    <input type="file" id="fileSelector" style="display: none;" onchange="executeFileUpload()">
-                    <button class="send-btn" style="background-color: #f2f2f2; color: #576b95; margin-right: auto;" onclick="document.getElementById('fileSelector').click()">📎 传文件/4K视频</button>
-                    
+                    <input type="file" id="fileSelector" style="display: none;" onchange="executeLocalFileUpload()">
+                    <button class="send-btn" style="background-color: #f2f2f2; color: #576b95; margin-right: auto;" onclick="document.getElementById('fileSelector').click()">📎 传文件/视频</button>
                     <button class="send-btn" onclick="handleSend()">发送</button>
                 </div>
             </div>
@@ -94,9 +91,7 @@
     </div>
 
     <script>
-        const API_BASE = "https://api.20140712.xyz";
-        // 💡 如果你配置了全新的上传Worker，请在这里填入它的地址。如果没有，可保持与API_BASE一致
-        const UPLOAD_API = "https://weiliao-upload.bhtbht668.workers.dev/"; 
+        const API_BASE = "https://weiliao-upload.bhtbht668.workers.dev/";
         
         let myUserId = "";
         let currentTargetId = "";
@@ -282,7 +277,7 @@
             } catch (e) {}
         }
 
-        // 精准切入点二：全新升级的消息解析与高阶数据渲染器（兼容普通消息和文件）
+        // 解析并渲染 Base64 本地文件
         function renderMessages(messages) {
             const area = document.getElementById('messageArea');
             area.innerHTML = "";
@@ -293,16 +288,15 @@
                 
                 let displayContent = msg.content;
                 
-                // 深度解析：如果是大厂公共通道寄送的大文件，提取出链接及文件名渲染为优雅小卡片
-                if (msg.content && msg.content.startsWith("[FILE_X]")) {
-                    const rawData = msg.content.substring("[FILE_X]".length);
-                    const [fileUrl, fileName] = rawData.split('|');
+                if (msg.content && msg.content.startsWith("[LOCAL_FILE]")) {
+                    const rawData = msg.content.substring("[LOCAL_FILE]".length);
+                    const [fileName, base64Data] = rawData.split('|');
                     displayContent = `
                         <div class="file-card">
                             <span class="file-icon">📁</span>
                             <div>
                                 <div class="file-info-name">${fileName}</div>
-                                <a href="${fileUrl}" target="_blank" class="file-download-link">点击全速下载/播放</a>
+                                <span class="file-download-link" onclick="downloadBase64File('${base64Data}', '${fileName}')">点击下载/查看文件</span>
                             </div>
                         </div>
                     `;
@@ -314,54 +308,54 @@
             area.scrollTop = area.scrollHeight;
         }
 
-        // 精准切入点三：不占用自身后端带宽、免绑信用卡的超长 4K 视频直切上传引擎
-        async function executeFileUpload() {
+        // 本地文件直接转 Base64 塞进消息库
+        function executeLocalFileUpload() {
             const fileSelector = document.getElementById('fileSelector');
             if (!fileSelector.files || fileSelector.files.length === 0) return;
             if (!currentTargetId) { alert("请先选择左侧通信目标！"); return; }
             
             const file = fileSelector.files[0];
+            
+            // 限制普通 D1 数据库单条消息大小限制（建议不超过 5MB 以防卡顿）
+            if (file.size > 5 * 1024 * 1024) {
+                alert("无卡模式下，文件请勿超过 5MB！若需传送超大 4K 视频，必须绑定信用卡激活 R2 存储桶。");
+                return;
+            }
+
             const inputElement = document.getElementById('textInput');
-            inputElement.value = ` [🚀 4K视频/全格式大文件无缝投递中，请保持网页开启...]`;
+            inputElement.value = ` [⚡ 文件转换并加密写入中...]`;
             inputElement.disabled = true;
 
-            try {
-                // 将大文件直接通过二进制数据流发送到全新部署的免签中转 Worker
-                const response = await fetch(`${UPLOAD_API}/api/upload?name=${encodeURIComponent(file.name)}`, {
-                    method: "POST",
-                    body: file
-                });
-                
-                const resData = await response.json();
-                
-                if (resData && resData.success && resData.url) {
-                    // 打标打包处理，将大厂CDN链接和文件名无缝投递给你现有的核心后端
-                    const fileMarker = `[FILE_X]${resData.url}|${file.name}`;
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = async function () {
+                try {
+                    const base64Data = reader.result;
+                    const fileMarker = `[LOCAL_FILE]${file.name}|${base64Data}`;
                     
-                    const res = await fetch(`${API_BASE}/api/send`, {
+                    await fetch(`${API_BASE}/api/send`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ from: myUserId, to: currentTargetId, type: chatType, text: fileMarker })
                     });
                     
-                    if (res.status === 403) {
-                        triggerForcedLogout("您的账号已被注销，文件投递终止！");
-                        return;
-                    }
-                    
                     inputElement.value = '';
-                    fileSelector.value = ''; // 归位选择器
+                    fileSelector.value = '';
                     pullData();
-                } else {
-                    alert("远端核心管道投递异常");
-                    inputElement.value = '';
+                } catch (e) {
+                    alert("写入失败");
+                } finally {
+                    inputElement.disabled = false;
                 }
-            } catch (e) {
-                alert("因网络传输超时导致连接阻断: " + e.message);
-                inputElement.value = '';
-            } finally {
-                inputElement.disabled = false;
-            }
+            };
+        }
+
+        // 解码并触发下载
+        function downloadBase64File(base64Data, fileName) {
+            const link = document.createElement('a');
+            link.href = base64Data;
+            link.download = fileName;
+            link.click();
         }
 
         async function addFriend() {
