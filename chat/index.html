@@ -4,36 +4,41 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>微聊</title>
-    <!-- 引入 Cloudflare 人机验证脚本 -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: sans-serif; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
         .box { width: 100%; max-width: 320px; padding: 25px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        #chatArea { display: none; } /* 默认隐藏聊天区 */
         h2 { text-align: center; margin-bottom: 20px; color: #333; }
         input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 4px; }
-        .turnstile-wrapper { min-height: 65px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center; }
+        .turnstile-wrapper { min-height: 65px; margin-bottom: 15px; display: flex; justify-content: center; }
         button { width: 100%; padding: 12px; background: #07c160; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
         p { text-align: center; margin-top: 15px; font-size: 13px; color: #576b95; cursor: pointer; }
     </style>
 </head>
 <body>
-    <div class="box">
+
+    <!-- 登录注册区 -->
+    <div class="box" id="loginBox">
         <h2 id="title">登录</h2>
         <input type="text" id="userId" placeholder="请输入微聊号">
         <input type="password" id="pass" placeholder="请输入密码">
-        
-        <div class="turnstile-wrapper">
-            <div class="cf-turnstile" data-sitekey="0x4AAAAAADgSqARrC_gtNkkb"></div>
-        </div>
-        
+        <div class="turnstile-wrapper"><div class="cf-turnstile" data-sitekey="0x4AAAAAADgSqARrC_gtNkkb"></div></div>
         <button id="btn" onclick="go()">登录</button>
         <p id="toggle" onclick="swap()">没有账号？去注册</p>
     </div>
 
+    <!-- 聊天区 -->
+    <div class="box" id="chatArea">
+        <h2>微聊聊天室</h2>
+        <div style="height:200px; border:1px solid #ddd; margin-bottom:10px; overflow-y:auto; padding:5px; font-size:14px;" id="msgList"></div>
+        <input type="text" id="msgInput" placeholder="输入消息...">
+        <button onclick="send()">发送</button>
+    </div>
+
     <script>
         let isReg = false;
-        
         function swap() {
             isReg = !isReg;
             document.getElementById('title').innerText = isReg ? "注册" : "登录";
@@ -45,11 +50,7 @@
             const userId = document.getElementById('userId').value;
             const password = document.getElementById('pass').value;
             const tokenEl = document.querySelector('[name="cf-turnstile-response"]');
-            
-            if(!tokenEl || !tokenEl.value) { 
-                alert("请先完成人机验证"); 
-                return; 
-            }
+            if(!tokenEl || !tokenEl.value) { alert("请先完成人机验证"); return; }
 
             try {
                 const res = await fetch("https://api.20140712.xyz" + (isReg ? "/api/register" : "/api/login"), {
@@ -57,22 +58,25 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ userId, password, cf_token: tokenEl.value })
                 });
-                
                 const d = await res.json();
-                
                 if (d.success) {
-                    // 核心修改：移除 alert，直接保存凭证并跳转
                     localStorage.setItem('userToken', d.token || "active");
                     localStorage.setItem('userId', userId);
-                    window.location.href = "chat.html";
+                    // 切换界面
+                    document.getElementById('loginBox').style.display = 'none';
+                    document.getElementById('chatArea').style.display = 'block';
                 } else {
-                    alert(d.error || "操作失败");
+                    alert(d.error || "失败");
                     if(typeof turnstile !== 'undefined') turnstile.reset();
                 }
-            } catch (e) { 
-                alert("连接服务器失败，请检查网络");
-                if(typeof turnstile !== 'undefined') turnstile.reset();
-            }
+            } catch (e) { alert("服务器异常"); }
+        }
+
+        function send() {
+            const msg = document.getElementById('msgInput').value;
+            if(!msg) return;
+            document.getElementById('msgList').innerHTML += `<div>${localStorage.getItem('userId')}: ${msg}</div>`;
+            document.getElementById('msgInput').value = '';
         }
     </script>
 </body>
