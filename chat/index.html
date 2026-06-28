@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>微聊</title>
-    <!-- 引入脚本 -->
+    <!-- 引入人机验证脚本 -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -12,10 +12,7 @@
         .box { width: 100%; max-width: 320px; padding: 25px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         h2 { text-align: center; margin-bottom: 20px; color: #333; }
         input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 4px; }
-        
-        /* 强制给验证框留出足够空间 */
         .turnstile-wrapper { min-height: 65px; margin-bottom: 15px; display: flex; justify-content: center; align-items: center; }
-        
         button { width: 100%; padding: 12px; background: #07c160; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
         p { text-align: center; margin-top: 15px; font-size: 13px; color: #576b95; cursor: pointer; }
     </style>
@@ -26,7 +23,6 @@
         <input type="text" id="userId" placeholder="请输入微聊号">
         <input type="password" id="pass" placeholder="请输入密码">
         
-        <!-- 包装一层 Wrapper，强制高度 -->
         <div class="turnstile-wrapper">
             <div class="cf-turnstile" data-sitekey="0x4AAAAAADgSqARrC_gtNkkb"></div>
         </div>
@@ -37,6 +33,7 @@
 
     <script>
         let isReg = false;
+        
         function swap() {
             isReg = !isReg;
             document.getElementById('title').innerText = isReg ? "注册" : "登录";
@@ -50,7 +47,7 @@
             const tokenEl = document.querySelector('[name="cf-turnstile-response"]');
             
             if(!tokenEl || !tokenEl.value) { 
-                alert("请等待人机验证加载完成并勾选"); 
+                alert("请先完成人机验证"); 
                 return; 
             }
 
@@ -60,9 +57,25 @@
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ userId, password, cf_token: tokenEl.value })
                 });
+                
                 const d = await res.json();
-                alert(d.success ? "成功" : (d.error || "操作失败"));
-            } catch (e) { alert("连接服务器失败，请检查网络"); }
+                
+                if (d.success) {
+                    alert(isReg ? "注册成功，即将自动登录" : "登录成功");
+                    // 保存登录凭证
+                    localStorage.setItem('userToken', d.token || "active");
+                    localStorage.setItem('userId', userId);
+                    // 跳转至主界面 (请确保你有一个 chat.html 或 main.html)
+                    window.location.href = "chat.html";
+                } else {
+                    alert(d.error || "操作失败");
+                    // 验证失败时重置验证码
+                    if(typeof turnstile !== 'undefined') turnstile.reset();
+                }
+            } catch (e) { 
+                alert("连接服务器失败，请检查网络");
+                if(typeof turnstile !== 'undefined') turnstile.reset();
+            }
         }
     </script>
 </body>
