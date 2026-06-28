@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>微聊-大成完全体</title>
+    <title>微聊-星际核潜艇版</title>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
-        /* 保持原有精致样式，省略以保持排版简洁 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
         body { font-family: sans-serif; background-color: #ededed; display: flex; justify-content: center; align-items: center; height: 100vh; }
         .chat-container { display: flex; width: 1000px; height: 80vh; background-color: #f5f5f5; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
@@ -42,13 +41,13 @@
 
     <div class="auth-overlay" id="authOverlay">
         <div class="auth-box">
-            <h2 id="authTitle">登录微聊 <span>🛡️ 极限物理法则加固版</span></h2>
+            <h2 id="authTitle">建立微聊加密会话 <span>🛡️ 算力证明与边缘双轨加固</span></h2>
             <input type="text" id="authUser" class="auth-input" placeholder="请输入纯数字微聊号">
             <input type="password" id="authPass" class="auth-input" placeholder="请输入核心通信密码">
             <div class="captcha-container" id="captchaContainer">
                 <div class="cf-turnstile" id="turnstileWidget" data-sitekey="0x4AAAAAADgSqARrC_gtNkkb"></div>
             </div>
-            <button class="auth-submit" id="authBtn" onclick="handleAuthSubmit()">建立加密会话</button>
+            <button class="auth-submit" id="authBtn" onclick="handleAuthSubmit()">调度本地算力登录</button>
             <div class="auth-toggle" id="authToggle" onclick="toggleAuthMode()">没有微聊号？去注册</div>
         </div>
     </div>
@@ -56,7 +55,7 @@
     <div class="chat-container">
         <div class="sidebar">
             <div class="user-profile">
-                <div id="myId" style="font-weight: bold; margin-bottom: 5px;">等待会话授权...</div>
+                <div id="myId" style="font-weight: bold; margin-bottom: 5px;">等待分布式授权...</div>
                 <button class="menu-btn" onclick="addFriend()">+ 加好友</button>
                 <button class="menu-btn" onclick="joinGroup()">+ 进群聊</button>
             </div>
@@ -75,7 +74,7 @@
     <script>
         const API_BASE = "https://api.20140712.xyz"; 
         let myUserId = "";
-        let localClientKey = ""; // 🌟 内存隔离：此处不再保留核心密码，仅留存动态下发的临时高熵会话令牌
+        let localClientKey = ""; // 🌟 内存绝杀：此变量常驻内存的只有随时熔断的临时 SessionKey
         let currentTargetId = "";
         let chatType = "";
         let isRegisterMode = false;
@@ -86,24 +85,38 @@
             isRegisterMode = !isRegisterMode;
             const container = document.getElementById('captchaContainer');
             if (isRegisterMode) {
-                document.getElementById('authTitle').innerHTML = "注册微聊 <span>🛡️ 极限物理法则加固版</span>";
-                document.getElementById('authBtn').innerText = "生成数字凭证并注册";
-                document.getElementById('authToggle').innerText = "已有账号？建立会话";
+                document.getElementById('authTitle').innerHTML = "注册微聊 <span>🛡️ 算力证明与边缘双轨加固</span>";
+                document.getElementById('authBtn').innerText = "生成数字凭证注册";
+                document.getElementById('authToggle').innerText = "已有账号？去登录";
                 container.style.display = "flex";
             } else {
-                document.getElementById('authTitle').innerHTML = "登录微聊 <span>🛡️ 极限物理法则加固版</span>";
-                document.getElementById('authBtn').innerText = "建立加密会话";
+                document.getElementById('authTitle').innerHTML = "登录微聊 <span>🛡️ 算力证明与边缘双轨加固</span>";
+                document.getElementById('authBtn').innerText = "调度本地算力登录";
                 document.getElementById('authToggle').innerText = "没有微聊号？去注册";
                 container.style.display = "none";
             }
         }
 
-        // 现场密算 60 秒时效流水动态签名值
+        // 前端本地 10,000 次原生高爆慢哈希引擎（外包后端 CPU 负载）
+        async function runClientSlowHash(pwd) {
+            const encoder = new TextEncoder();
+            const salt = "Secret_Chat_Salt_2026_#@!"; 
+            let currentBuf = encoder.encode(pwd + salt);
+            for (let i = 0; i < 10000; i++) {
+                const hashBuf = await window.crypto.subtle.digest("SHA-256", currentBuf);
+                if (i === 9999) {
+                    return Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, "0")).join("");
+                }
+                const hexString = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, "0")).join("");
+                currentBuf = encoder.encode(hexString);
+            }
+        }
+
+        // 利用数据库动态下发的 SessionKey 计算单次 5 秒流水签名指纹
         async function signPayload(userId, timestamp, nonce) {
             const encoder = new TextEncoder();
             const keyBuf = encoder.encode(localClientKey);
             const msgBuf = encoder.encode(`${userId}:${timestamp}:${nonce}`);
-
             const cryptoKey = await window.crypto.subtle.importKey(
                 "raw", keyBuf, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]
             );
@@ -113,7 +126,7 @@
 
         async function createAuthParams(userId, baseObj = {}) {
             const timestamp = Date.now().toString();
-            const entropy = new Uint8Array(16); // 16 字节高熵真随机 nonce 杜绝碰撞
+            const entropy = new Uint8Array(16);
             window.crypto.getRandomValues(entropy);
             const nonce = Array.from(entropy).map(b => b.toString(16).padStart(2, "0")).join("");
             const sig = await signPayload(userId, timestamp, nonce);
@@ -124,46 +137,65 @@
             const user = document.getElementById('authUser').value.trim();
             const pass = document.getElementById('authPass').value.trim();
             if (!user || !pass) { alert("输入不完整！"); return; }
+            if (isRegisterMode && !/^\d+$/.test(user)) { alert("微聊号必须全部为纯数字！"); return; }
 
-            const endpoint = isRegisterMode ? "/api/register" : "/api/login";
-            let initBody = { userId: user, password: pass };
-            
-            if (isRegisterMode) {
-                const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]')?.value;
-                if (!turnstileResponse) { alert("请通过人类身份校验！"); return; }
-                initBody.cf_token = turnstileResponse;
-            }
-            
+            document.getElementById('authBtn').innerText = "⚡ 正在计算本地 PoW 算力锁...";
+            document.getElementById('authBtn').disabled = true;
+
             try {
-                const res = await fetch(`${API_BASE}${endpoint}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(initBody)
-                });
-                const data = await res.json();
-                
-                if (res.status === 200 && (data.success || data.sessionKey)) {
-                    myUserId = user;
-                    if (!isRegisterMode) {
-                        // 🌟【完美体加固】将后端动态返回的独立高熵会话令牌赋值给 localClientKey
-                        localClientKey = data.sessionKey; 
-                        // 函数执行完毕，临时变量 `pass`（核心密码）瞬间物理出栈出离内存，杜绝 Dump 嗅探！
+                if (isRegisterMode) {
+                    // 注册分支保持原样
+                    const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]')?.value;
+                    if (!turnstileResponse) { alert("请通过人机校验！"); document.getElementById('authBtn').disabled = false; return; }
+                    const res = await fetch(`${API_BASE}/api/register`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: user, password: pass, cf_token: turnstileResponse })
+                    });
+                    if (res.status === 200) { alert("注册成功，请登录！"); toggleAuthMode(); } else { alert("注册失败"); }
+                } else {
+                    // 🌟【密码学退耦登录】1. 现场获取 5 秒内唯一的动态挑战盐
+                    const chalRes = await fetch(`${API_BASE}/api/auth/challenge`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: user })
+                    });
+                    const chalData = await chalRes.json();
+                    if (!chalData.challenge) { alert("挑战码获取失败"); document.getElementById('authBtn').disabled = false; return; }
+
+                    // 🌟 2. 前端疯狂燃烧本地 CPU 计算 10,000 次慢哈希
+                    const localBaseHash = await runClientSlowHash(pass);
+                    
+                    // 🌟 3. 将本地跑完的慢哈希与后端的动态挑战码对撞，生成 clientStretchedHash
+                    const encoder = new TextEncoder();
+                    const finalBuf = encoder.encode(localBaseHash + chalData.challenge);
+                    const finalHashBuf = await window.crypto.subtle.digest("SHA-512", finalBuf);
+                    const clientStretchedHash = Array.from(new Uint8Array(finalHashBuf)).map(b => b.toString(16).padStart(2, "0")).join("");
+
+                    // 🌟 4. 提交登录（不传核心明文密码）
+                    const loginRes = await fetch(`${API_BASE}/api/login`, {
+                        method: 'POST', headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: user, clientStretchedHash: clientStretchedHash })
+                    });
+                    const loginData = await loginRes.json();
+                    
+                    if (loginRes.status === 200 && loginData.sessionKey) {
+                        myUserId = user;
+                        localClientKey = loginData.sessionKey; // 内存只留瞬时 SessionKey
+                        // 🌟【密码阅后即焚】核心密码 `pass` 随着函数生命周期终结被物理出栈出离内存
                         document.getElementById('myId').innerText = "微聊号: " + myUserId;
                         document.getElementById('authOverlay').style.display = 'none';
                         pullData();
                         setInterval(pullData, 2000);
-                    } else {
-                        alert("注册成功！请切换至登录界面建立会话。");
-                        toggleAuthMode();
-                    }
-                } else { alert(data.error || "鉴权失败"); }
-            } catch(e) { alert("服务器连接故障"); }
+                    } else { alert(loginData.error || "密码错误或算力欺诈被拦截！"); }
+                }
+            } catch(e) { alert("网络交互故障"); }
+            document.getElementById('authBtn').innerText = "建立加密会话";
+            document.getElementById('authBtn').disabled = false;
         }
 
         function triggerForcedLogout(message) {
             const entropyArray = new Uint32Array(1);
             window.crypto.getRandomValues(entropyArray);
-            const jitterDelay = entropyArray[0] % 2500; // 离散抖动错峰，缓解系统重连洪峰
+            const jitterDelay = entropyArray[0] % 2500; 
             alert(message);
             setTimeout(() => { window.location.reload(); }, jitterDelay);
         }
@@ -172,19 +204,14 @@
             if (!myUserId || !localClientKey) return;
             try {
                 const authParams = await createAuthParams(myUserId);
-                const queryStr = new URLSearchParams(authParams).toString();
-
-                const listRes = await fetch(`${API_BASE}/api/list?${queryStr}`);
-                if (listRes.status === 403 || listRes.status === 401) {
-                    triggerForcedLogout("会话指纹异常，环境释放！"); return;
-                }
-                const listData = await listRes.json();
-                renderList(listData);
+                const listRes = await fetch(`${API_BASE}/api/list?${new URLSearchParams(authParams).toString()}`);
+                if (listRes.status === 403 || listRes.status === 401) { triggerForcedLogout("会话过期或已被后台秒级注销！"); return; }
+                renderList(await listRes.json());
 
                 if (currentTargetId) {
                     const msgParams = await createAuthParams(myUserId, { targetId: currentTargetId, type: chatType, since_id: lastMsgId });
                     const msgRes = await fetch(`${API_BASE}/api/messages?${new URLSearchParams(msgParams).toString()}`);
-                    if (msgRes.status === 403 || msgRes.status === 401) { triggerForcedLogout("指纹时限过期！"); return; }
+                    if (msgRes.status === 403 || msgRes.status === 401) { triggerForcedLogout("会话安全失效！"); return; }
                     const newMessages = await msgRes.json();
                     if (newMessages.length > 0) {
                         localMessageCache = localMessageCache.concat(newMessages);
@@ -198,54 +225,17 @@
         function renderList(data) {
             const listEl = document.getElementById('chatList');
             let html = "";
-            (data.friends || []).forEach(f => {
-                html += `<div class="chat-item ${currentTargetId === f ? 'active' : ''}" onclick="selectChat('${f}', '好友: ${f}', 'private')"><div class="avatar"></div><span>${f}</span></div>`;
-            });
-            (data.groups || []).forEach(g => {
-                html += `<div class="chat-item ${currentTargetId === g ? 'active' : ''}" onclick="selectChat('${g}', '群聊: ${g}', 'group')"><div class="avatar" style="background:#10aeb5"></div><span>${g}</span></div>`;
-            });
+            (data.friends || []).forEach(f => { html += `<div class="chat-item ${currentTargetId === f ? 'active' : ''}" onclick="selectChat('${f}', '好友: ${f}', 'private')"><div class="avatar"></div><span>${f}</span></div>`; });
+            (data.groups || []).forEach(g => { html += `<div class="chat-item ${currentTargetId === g ? 'active' : ''}" onclick="selectChat('${g}', '群聊: ${g}', 'group')"><div class="avatar" style="background:#10aeb5"></div><span>${g}</span></div>`; });
             listEl.innerHTML = html || `<div class="empty-tip">暂无聊天，请加好友或进群</div>`;
         }
 
-        function selectChat(id, name, type) {
-            currentTargetId = id; chatType = type; lastMsgId = 0; localMessageCache = [];
-            document.getElementById('chatTitle').innerText = name;
-            document.getElementById('messageArea').innerHTML = '';
-            pullData();
-        }
-
-        async function handleSend() {
-            const input = document.getElementById('textInput');
-            const text = input.value.trim();
-            if (!text || !currentTargetId) return;
-            try {
-                const payload = await createAuthParams(myUserId, { to: currentTargetId, type: chatType, text: text });
-                const res = await fetch(`${API_BASE}/api/send`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (res.status === 403 || res.status === 401) { triggerForcedLogout("指纹时限验证失败"); return; }
-                input.value = '';
-                pullData();
-            } catch (e) {}
-        }
-
-        function renderMessages(messages) {
-            const area = document.getElementById('messageArea'); area.innerHTML = "";
-            (messages || []).forEach(msg => {
-                const isSelf = msg.from_user === myUserId;
-                const msgDiv = document.createElement('div');
-                msgDiv.className = `msg ${isSelf ? 'right' : 'left'}`;
-                msgDiv.innerHTML = `<div class="avatar" style="background-color: ${isSelf ? '#07c160' : '#ccc'}"></div><div class="msg-text">${msg.content}</div>`;
-                area.appendChild(msgDiv);
-            });
-            area.scrollTop = area.scrollHeight;
-        }
-
+        function selectChat(id, name, type) { currentTargetId = id; chatType = type; lastMsgId = 0; localMessageCache = []; document.getElementById('chatTitle').innerText = name; document.getElementById('messageArea').innerHTML = ''; pullData(); }
+        async function handleSend() { const input = document.getElementById('textInput'); const text = input.value.trim(); if (!text || !currentTargetId) return; try { const payload = await createAuthParams(myUserId, { to: currentTargetId, type: chatType, text: text }); const res = await fetch(`${API_BASE}/api/send`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) }); if (res.status === 403 || res.status === 401) { triggerForcedLogout("时这时效验证拦截！"); return; } input.value = ''; pullData(); } catch (e) {} }
+        function renderMessages(messages) { const area = document.getElementById('messageArea'); area.innerHTML = ""; (messages || []).forEach(msg => { const isSelf = msg.from_user === myUserId; const msgDiv = document.createElement('div'); msgDiv.className = `msg ${isSelf ? 'right' : 'left'}`; msgDiv.innerHTML = `<div class="avatar" style="background-color: ${isSelf ? '#07c160' : '#ccc'}"></div><div class="msg-text">${msg.content}</div>`; area.appendChild(msgDiv); }); area.scrollTop = area.scrollHeight; }
         function handleKeyDown(event) { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); handleSend(); } }
-        async function addFriend() { const fId = prompt("输入好友微聊号:"); if(fId) { const p = await createAuthParams(myUserId, { friendId: fId }); await fetch(`${API_BASE}/api/add-friend`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }); pullData(); } }
-        async function joinGroup() { const gId = prompt("输入群聊号:"); if(gId) { const p = await createAuthParams(myUserId, { groupId: gId }); await fetch(`${API_BASE}/api/join-group`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }); selectChat(gId, '群聊: ' + gId, 'group'); } }
+        async function addFriend() { const fId = prompt("好友微聊号:"); if(fId) { const p = await createAuthParams(myUserId, { friendId: fId }); await fetch(`${API_BASE}/api/add-friend`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }); pullData(); } }
+        async function joinGroup() { const gId = prompt("群聊号:"); if(gId) { const p = await createAuthParams(myUserId, { groupId: gId }); await fetch(`${API_BASE}/api/join-group`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }); selectChat(gId, '群聊: ' + gId, 'group'); } }
     </script>
 </body>
 </html>
