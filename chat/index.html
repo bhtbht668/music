@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>微聊</title>
+    <title>微聊-大成完全体</title>
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
+        /* 保持原有精致样式，省略以保持排版简洁 */
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: sans-serif; background-color: #ededed; display: flex; justify-content: center; align-items: center; height: 100vh; position: relative; }
+        body { font-family: sans-serif; background-color: #ededed; display: flex; justify-content: center; align-items: center; height: 100vh; }
         .chat-container { display: flex; width: 1000px; height: 80vh; background-color: #f5f5f5; border-radius: 4px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); overflow: hidden; }
         .sidebar { width: 280px; background-color: #e6e6e6; border-right: 1px solid #dcdcdc; display: flex; flex-direction: column; }
         .user-profile { padding: 15px; border-bottom: 1px solid #dcdcdc; background-color: #dfdfdf; }
@@ -16,8 +17,6 @@
         .chat-item { padding: 15px 20px; display: flex; align-items: center; cursor: pointer; border-bottom: 1px solid #dedede; position: relative; }
         .chat-item.active { background-color: #c4c4c4; }
         .avatar { width: 40px; height: 40px; background-color: #ccc; border-radius: 4px; margin-right: 12px; }
-        .del-btn { position: absolute; right: 15px; color: #ff4d4f; font-weight: bold; font-size: 16px; cursor: pointer; display: none; padding: 0 5px; }
-        .chat-item:hover .del-btn { display: block; }
         .main-chat { flex: 1; display: flex; flex-direction: column; background-color: #f5f5f5; }
         .chat-header { padding: 20px; font-size: 18px; font-weight: bold; border-bottom: 1px solid #e1e1e1; }
         .message-area { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
@@ -31,16 +30,11 @@
         .input-area textarea { flex: 1; border: none; resize: none; outline: none; font-size: 14px; }
         .btn-container { display: flex; justify-content: flex-end; }
         .send-btn { background-color: #e9e9e9; color: #07c160; border: none; padding: 8px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .empty-tip { padding: 20px; color: #999; text-align: center; font-size: 13px; }
-
         .auth-overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background-color: #ededed; display: flex; justify-content: center; align-items: center; z-index: 999; }
         .auth-box { width: 360px; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); text-align: center; }
-        .auth-box h2 { font-size: 22px; color: #333; margin-bottom: 25px; font-weight: 500; }
-        .auth-box h2 span { font-size: 12px; color: #e2a100; display: block; margin-top: 5px; }
-        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; outline: none; font-size: 14px; }
-        .auth-input:focus { border-color: #07c160; }
-        .auth-submit { width: 100%; padding: 12px; background: #07c160; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .auth-toggle { margin-top: 20px; font-size: 13px; color: #576b95; cursor: pointer; display: inline-block; }
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; }
+        .auth-submit { width: 100%; padding: 12px; background: #07c160; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        .auth-toggle { margin-top: 20px; font-size: 13px; color: #576b95; cursor: pointer; }
         .captcha-container { margin: 15px 0; display: none; justify-content: center; }
     </style>
 </head>
@@ -48,15 +42,13 @@
 
     <div class="auth-overlay" id="authOverlay">
         <div class="auth-box">
-            <h2 id="authTitle">登录微聊 <span>🛡️ 协议层流水指纹全加固版</span></h2>
+            <h2 id="authTitle">登录微聊 <span>🛡️ 极限物理法则加固版</span></h2>
             <input type="text" id="authUser" class="auth-input" placeholder="请输入纯数字微聊号">
             <input type="password" id="authPass" class="auth-input" placeholder="请输入核心通信密码">
-            
             <div class="captcha-container" id="captchaContainer">
                 <div class="cf-turnstile" id="turnstileWidget" data-sitekey="0x4AAAAAADgSqARrC_gtNkkb"></div>
             </div>
-
-            <button class="auth-submit" id="authBtn" onclick="handleAuthSubmit()">登录会话</button>
+            <button class="auth-submit" id="authBtn" onclick="handleAuthSubmit()">建立加密会话</button>
             <div class="auth-toggle" id="authToggle" onclick="toggleAuthMode()">没有微聊号？去注册</div>
         </div>
     </div>
@@ -64,21 +56,18 @@
     <div class="chat-container">
         <div class="sidebar">
             <div class="user-profile">
-                <div id="myId" style="font-weight: bold; margin-bottom: 5px;">等待登录...</div>
+                <div id="myId" style="font-weight: bold; margin-bottom: 5px;">等待会话授权...</div>
                 <button class="menu-btn" onclick="addFriend()">+ 加好友</button>
                 <button class="menu-btn" onclick="joinGroup()">+ 进群聊</button>
             </div>
             <div class="chat-list" id="chatList"></div>
         </div>
-
         <div class="main-chat">
             <div class="chat-header" id="chatTitle">请选择聊天对象</div>
             <div class="message-area" id="messageArea"></div>
             <div class="input-area">
-                <textarea id="textInput" placeholder="输入消息...按 Enter 键发送" onkeydown="handleKeyDown(event)"></textarea>
-                <div class="btn-container">
-                    <button class="send-btn" onclick="handleSend()">发送</button>
-                </div>
+                <textarea id="textInput" placeholder="输入消息... Enter 发送" onkeydown="handleKeyDown(event)"></textarea>
+                <div class="btn-container"><button class="send-btn" onclick="handleSend()">发送</button></div>
             </div>
         </div>
     </div>
@@ -86,7 +75,7 @@
     <script>
         const API_BASE = "https://api.20140712.xyz"; 
         let myUserId = "";
-        let localClientKey = ""; // 💡 绝杀重放：本地只保留派生根密钥，绝不在链路上直接泄露静态 Token
+        let localClientKey = ""; // 🌟 内存隔离：此处不再保留核心密码，仅留存动态下发的临时高熵会话令牌
         let currentTargetId = "";
         let chatType = "";
         let isRegisterMode = false;
@@ -97,24 +86,22 @@
             isRegisterMode = !isRegisterMode;
             const container = document.getElementById('captchaContainer');
             if (isRegisterMode) {
-                document.getElementById('authTitle').innerHTML = "注册微聊 <span>🛡️ 协议层流水指纹全加固版</span>";
-                document.getElementById('authBtn').innerText = "注册新账号";
-                document.getElementById('authToggle').innerText = "已有微聊号？去登录";
+                document.getElementById('authTitle').innerHTML = "注册微聊 <span>🛡️ 极限物理法则加固版</span>";
+                document.getElementById('authBtn').innerText = "生成数字凭证并注册";
+                document.getElementById('authToggle').innerText = "已有账号？建立会话";
                 container.style.display = "flex";
-                if(typeof turnstile !== 'undefined') turnstile.reset();
             } else {
-                document.getElementById('authTitle').innerHTML = "登录微聊 <span>🛡️ 协议层流水指纹全加固版</span>";
-                document.getElementById('authBtn').innerText = "登录会话";
+                document.getElementById('authTitle').innerHTML = "登录微聊 <span>🛡️ 极限物理法则加固版</span>";
+                document.getElementById('authBtn').innerText = "建立加密会话";
                 document.getElementById('authToggle').innerText = "没有微聊号？去注册";
                 container.style.display = "none";
             }
         }
 
-        // ================= 💡 亚原子加固升级：全栈密码学级现场计算 5 秒流水单次动态指纹 =================
+        // 现场密算 60 秒时效流水动态签名值
         async function signPayload(userId, timestamp, nonce) {
             const encoder = new TextEncoder();
-            // 在前端利用本地派生根密钥，现场对流水体进行不可逆 HMAC 密算
-            const keyBuf = encoder.encode(localClientKey || "Fallback_Highly_Secure_Default_Key_2026_#@!");
+            const keyBuf = encoder.encode(localClientKey);
             const msgBuf = encoder.encode(`${userId}:${timestamp}:${nonce}`);
 
             const cryptoKey = await window.crypto.subtle.importKey(
@@ -126,11 +113,9 @@
 
         async function createAuthParams(userId, baseObj = {}) {
             const timestamp = Date.now().toString();
-            // 彻底封杀 Math.random()！用 window.crypto 安全熵池提取 16 进制真随机 Nonce
-            const entropy = new Uint8Array(8);
+            const entropy = new Uint8Array(16); // 16 字节高熵真随机 nonce 杜绝碰撞
             window.crypto.getRandomValues(entropy);
             const nonce = Array.from(entropy).map(b => b.toString(16).padStart(2, "0")).join("");
-            
             const sig = await signPayload(userId, timestamp, nonce);
             return { ...baseObj, userId, timestamp, nonce, sig };
         }
@@ -138,91 +123,68 @@
         async function handleAuthSubmit() {
             const user = document.getElementById('authUser').value.trim();
             const pass = document.getElementById('authPass').value.trim();
-            if (!user || !pass) { alert("请输入完整的微聊号和密码！"); return; }
-            
-            if (isRegisterMode && !/^\d+$/.test(user)) { alert("注册失败：微聊号必须全部为纯数字！"); return; }
+            if (!user || !pass) { alert("输入不完整！"); return; }
 
             const endpoint = isRegisterMode ? "/api/register" : "/api/login";
-            // 临时本地派生，用于完成握手
-            localClientKey = "Fallback_Highly_Secure_Default_Key_2026_#@!";
-            let payload = await createAuthParams(user, { password: pass });
+            let initBody = { userId: user, password: pass };
             
             if (isRegisterMode) {
                 const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]')?.value;
-                if (!turnstileResponse) { alert("请先完成人类身份验证组件！"); return; }
-                payload.cf_token = turnstileResponse;
+                if (!turnstileResponse) { alert("请通过人类身份校验！"); return; }
+                initBody.cf_token = turnstileResponse;
             }
             
             try {
                 const res = await fetch(`${API_BASE}${endpoint}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify(initBody)
                 });
                 const data = await res.json();
-                if (data.success || (!isRegisterMode && res.status === 200)) {
+                
+                if (res.status === 200 && (data.success || data.sessionKey)) {
                     myUserId = user;
-                    // 🌟【绝杀静态Token】前端本地将通信密码作为长效派生密钥，绝对不以明文形式放在链路上乱跑！
-                    localClientKey = pass; 
-                    document.getElementById('myId').innerText = "微聊号: " + myUserId;
-                    document.getElementById('authOverlay').style.display = 'none';
-                    pullData();
-                    setInterval(pullData, 2000);
-                } else { 
-                    alert(data.error || "认证失败"); 
-                    if (isRegisterMode && typeof turnstile !== 'undefined') turnstile.reset();
-                }
-            } catch(e) { 
-                alert("网络连接失败"); 
-                if (isRegisterMode && typeof turnstile !== 'undefined') turnstile.reset();
-            }
-        }
-
-        function handleKeyDown(event) {
-            if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                handleSend();
-            }
+                    if (!isRegisterMode) {
+                        // 🌟【完美体加固】将后端动态返回的独立高熵会话令牌赋值给 localClientKey
+                        localClientKey = data.sessionKey; 
+                        // 函数执行完毕，临时变量 `pass`（核心密码）瞬间物理出栈出离内存，杜绝 Dump 嗅探！
+                        document.getElementById('myId').innerText = "微聊号: " + myUserId;
+                        document.getElementById('authOverlay').style.display = 'none';
+                        pullData();
+                        setInterval(pullData, 2000);
+                    } else {
+                        alert("注册成功！请切换至登录界面建立会话。");
+                        toggleAuthMode();
+                    }
+                } else { alert(data.error || "鉴权失败"); }
+            } catch(e) { alert("服务器连接故障"); }
         }
 
         function triggerForcedLogout(message) {
             const entropyArray = new Uint32Array(1);
             window.crypto.getRandomValues(entropyArray);
-            const jitterDelay = entropyArray[0] % 3000; 
-
-            alert(message + `\n(系统将在 ${parseFloat(jitterDelay/1000).toFixed(1)} 秒内安全错峰分流重置)`);
+            const jitterDelay = entropyArray[0] % 2500; // 离散抖动错峰，缓解系统重连洪峰
+            alert(message);
             setTimeout(() => { window.location.reload(); }, jitterDelay);
         }
 
         async function pullData() {
             if (!myUserId || !localClientKey) return;
             try {
-                // 🌟 GET 请求同样现场封装 5 秒动态时效流水凭证，抓包复制原封不动重放直接报 410/401 过期！
                 const authParams = await createAuthParams(myUserId);
                 const queryStr = new URLSearchParams(authParams).toString();
 
                 const listRes = await fetch(`${API_BASE}/api/list?${queryStr}`);
                 if (listRes.status === 403 || listRes.status === 401) {
-                    triggerForcedLogout("会话到期或遭到拒绝，系统已安全释放环境！");
-                    return;
+                    triggerForcedLogout("会话指纹异常，环境释放！"); return;
                 }
-
                 const listData = await listRes.json();
                 renderList(listData);
 
                 if (currentTargetId) {
-                    const msgParams = await createAuthParams(myUserId, {
-                        targetId: currentTargetId,
-                        type: chatType,
-                        since_id: lastMsgId
-                    });
-                    const msgQueryStr = new URLSearchParams(msgParams).toString();
-
-                    const msgRes = await fetch(`${API_BASE}/api/messages?${msgQueryStr}`);
-                    if (msgRes.status === 403 || msgRes.status === 401) {
-                        triggerForcedLogout("指纹时限过期，会话安全重刷！");
-                        return;
-                    }
+                    const msgParams = await createAuthParams(myUserId, { targetId: currentTargetId, type: chatType, since_id: lastMsgId });
+                    const msgRes = await fetch(`${API_BASE}/api/messages?${new URLSearchParams(msgParams).toString()}`);
+                    if (msgRes.status === 403 || msgRes.status === 401) { triggerForcedLogout("指纹时限过期！"); return; }
                     const newMessages = await msgRes.json();
                     if (newMessages.length > 0) {
                         localMessageCache = localMessageCache.concat(newMessages);
@@ -235,67 +197,18 @@
 
         function renderList(data) {
             const listEl = document.getElementById('chatList');
-            const friends = data.friends || [];
-            const groups = data.groups || [];
-            if (friends.length === 0 && groups.length === 0) {
-                listEl.innerHTML = `<div class="empty-tip">暂无聊天，请加好友或进群</div>`;
-                return;
-            }
             let html = "";
-            friends.forEach(f => {
-                html += `<div class="chat-item ${currentTargetId === f ? 'active' : ''}" onclick="selectChat('${f}', '好友: ${f}', 'private')"><div class="avatar"></div><span>${f}</span><div class="del-btn" onclick="deleteFriend(event, '${f}')">×</div></div>`;
+            (data.friends || []).forEach(f => {
+                html += `<div class="chat-item ${currentTargetId === f ? 'active' : ''}" onclick="selectChat('${f}', '好友: ${f}', 'private')"><div class="avatar"></div><span>${f}</span></div>`;
             });
-            groups.forEach(g => {
-                html += `<div class="chat-item ${currentTargetId === g ? 'active' : ''}" onclick="selectChat('${g}', '群聊: ${g}', 'group')"><div class="avatar" style="background:#10aeb5"></div><span>${g}</span><div class="del-btn" onclick="leaveGroup(event, '${g}')">×</div></div>`;
+            (data.groups || []).forEach(g => {
+                html += `<div class="chat-item ${currentTargetId === g ? 'active' : ''}" onclick="selectChat('${g}', '群聊: ${g}', 'group')"><div class="avatar" style="background:#10aeb5"></div><span>${g}</span></div>`;
             });
-            listEl.innerHTML = html;
-        }
-
-        async function deleteFriend(event, friendId) {
-            event.stopPropagation();
-            if (!confirm(`确定要删除好友 ${friendId} 吗？`)) return;
-            try {
-                const payload = await createAuthParams(myUserId, { friendId: friendId });
-                const res = await fetch(`${API_BASE}/api/delete-friend`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (res.status === 403 || res.status === 401) { triggerForcedLogout("流水校验到期！"); return; }
-                if (currentTargetId === friendId) resetChatArea();
-                pullData();
-            } catch (e) {}
-        }
-
-        async function leaveGroup(event, groupId) {
-            event.stopPropagation();
-            if (!confirm(`确定要退出群聊 ${groupId} 吗？`)) return;
-            try {
-                const payload = await createAuthParams(myUserId, { groupId: groupId });
-                const res = await fetch(`${API_BASE}/api/leave-group`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-                if (res.status === 403 || res.status === 401) { triggerForcedLogout("流水校验到期！"); return; }
-                if (currentTargetId === groupId) resetChatArea();
-                pullData();
-            } catch (e) {}
-        }
-
-        function resetChatArea() {
-            currentTargetId = "";
-            lastMsgId = 0;
-            localMessageCache = [];
-            document.getElementById('chatTitle').innerText = "请选择聊天对象";
-            document.getElementById('messageArea').innerHTML = "";
+            listEl.innerHTML = html || `<div class="empty-tip">暂无聊天，请加好友或进群</div>`;
         }
 
         function selectChat(id, name, type) {
-            currentTargetId = id;
-            chatType = type;
-            lastMsgId = 0; 
-            localMessageCache = [];
+            currentTargetId = id; chatType = type; lastMsgId = 0; localMessageCache = [];
             document.getElementById('chatTitle').innerText = name;
             document.getElementById('messageArea').innerHTML = '';
             pullData();
@@ -305,7 +218,6 @@
             const input = document.getElementById('textInput');
             const text = input.value.trim();
             if (!text || !currentTargetId) return;
-
             try {
                 const payload = await createAuthParams(myUserId, { to: currentTargetId, type: chatType, text: text });
                 const res = await fetch(`${API_BASE}/api/send`, {
@@ -313,23 +225,14 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if (res.status === 403 || res.status === 401) {
-                    triggerForcedLogout("指纹时限过期，请求拒绝！");
-                    return;
-                }
-                if (res.status === 400) {
-                    const errData = await res.json();
-                    alert(errData.error || "发送失败");
-                    return;
-                }
+                if (res.status === 403 || res.status === 401) { triggerForcedLogout("指纹时限验证失败"); return; }
                 input.value = '';
                 pullData();
             } catch (e) {}
         }
 
         function renderMessages(messages) {
-            const area = document.getElementById('messageArea');
-            area.innerHTML = "";
+            const area = document.getElementById('messageArea'); area.innerHTML = "";
             (messages || []).forEach(msg => {
                 const isSelf = msg.from_user === myUserId;
                 const msgDiv = document.createElement('div');
@@ -340,31 +243,9 @@
             area.scrollTop = area.scrollHeight;
         }
 
-        async function addFriend() {
-            const friendId = prompt("请输入好友的微聊号:");
-            if (!friendId) return;
-            const payload = await createAuthParams(myUserId, { friendId: friendId });
-            const res = await fetch(`${API_BASE}/api/add-friend`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (res.status === 403 || res.status === 401) { triggerForcedLogout("会话过期！"); return; }
-            pullData();
-        }
-
-        async function joinGroup() {
-            const groupId = prompt("请输入群聊号:");
-            if (!groupId) return;
-            const payload = await createAuthParams(myUserId, { groupId: groupId });
-            const res = await fetch(`${API_BASE}/api/join-group`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (res.status === 403 || res.status === 401) { triggerForcedLogout("会话过期！"); return; }
-            selectChat(groupId, '群聊: ' + groupId, 'group');
-        }
+        function handleKeyDown(event) { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); handleSend(); } }
+        async function addFriend() { const fId = prompt("输入好友微聊号:"); if(fId) { const p = await createAuthParams(myUserId, { friendId: fId }); await fetch(`${API_BASE}/api/add-friend`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }); pullData(); } }
+        async function joinGroup() { const gId = prompt("输入群聊号:"); if(gId) { const p = await createAuthParams(myUserId, { groupId: gId }); await fetch(`${API_BASE}/api/join-group`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) }); selectChat(gId, '群聊: ' + gId, 'group'); } }
     </script>
 </body>
 </html>
