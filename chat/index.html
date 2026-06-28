@@ -85,11 +85,12 @@
     <script>
         const API_BASE = "https://api.20140712.xyz"; 
         let myUserId = "";
+        let myToken = ""; // 本地安全指纹存储
         let currentTargetId = "";
         let chatType = "";
         let isRegisterMode = false;
-        let lastMsgTimestamp = 0; // 💡 记录最后一条消息的时间戳，实现增量拉取
-        let localMessageCache = []; // 本地消息缓存
+        let lastMsgId = 0; // 💡 绝杀时区漏洞：完全切换为底层数据库自增自增长消息 ID
+        let localMessageCache = []; 
 
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
@@ -123,10 +124,7 @@
             
             if (isRegisterMode) {
                 const turnstileResponse = document.querySelector('[name="cf-turnstile-response"]')?.value;
-                if (!turnstileResponse) {
-                    alert("请先完成人类身份验证组件！");
-                    return;
-                }
+                if (!turnstileResponse) { alert("请先完成人类身份验证组件！"); return; }
                 payload.cf_token = turnstileResponse;
             }
             
@@ -139,21 +137,18 @@
                 const data = await res.json();
                 if (data.success) {
                     myUserId = user;
+                    myToken = data.token; // 保存后端下发的合法签名密钥，拒绝伪造
                     document.getElementById('myId').innerText = "微聊号: " + myUserId;
                     document.getElementById('authOverlay').style.display = 'none';
                     pullData();
                     setInterval(pullData, 2000);
                 } else { 
                     alert(data.error || "操作失败"); 
-                    if (isRegisterMode && typeof turnstile !== 'undefined') {
-                        turnstile.reset();
-                    }
+                    if (isRegisterMode && typeof turnstile !== 'undefined') turnstile.reset();
                 }
             } catch(e) { 
                 alert("网络连接失败"); 
-                if (isRegisterMode && typeof turnstile !== 'undefined') {
-                    turnstile.reset();
-                }
+                if (isRegisterMode && typeof turnstile !== 'undefined') turnstile.reset();
             }
         }
 
@@ -164,17 +159,26 @@
             }
         }
 
+        // ================= 💡 纳米升级二：【纳米盲区三加固】利用密码学熵池注入 Jitter 抗抖动阻尼，绝杀雷鸣惊群雪崩 =================
         function triggerForcedLogout(message) {
-            alert(message);
-            window.location.reload();
+            // 全面封杀 Math.random()！改用标准密码学级硬件熵池产生抗抖动随机延时
+            const entropyArray = new Uint32Array(1);
+            window.crypto.getRandomValues(entropyArray);
+            const jitterDelay = entropyArray[0] % 3000; // 产生 0-3000 毫秒的完全真随机离散延时
+
+            alert(message + `\n(系统将在 ${parseFloat(jitterDelay/1000).toFixed(1)} 秒内安全分流登出重置)`);
+            
+            setTimeout(() => {
+                window.location.reload();
+            }, jitterDelay);
         }
 
         async function pullData() {
-            if (!myUserId) return;
+            if (!myUserId || !myToken) return;
             try {
-                const listRes = await fetch(`${API_BASE}/api/list?userId=${myUserId}`);
-                if (listRes.status === 403) {
-                    triggerForcedLogout("您的账号已被管理员从后台强行注销！");
+                const listRes = await fetch(`${API_BASE}/api/list?userId=${myUserId}&token=${myToken}`);
+                if (listRes.status === 403 || listRes.status === 401) {
+                    triggerForcedLogout("整点全网大清洗已完成，您的会话已被安全释放！");
                     return;
                 }
 
@@ -182,17 +186,16 @@
                 renderList(listData);
 
                 if (currentTargetId) {
-                    // 💡 增量拉取更新：带上当前本地最新的最后一条消息时间戳
-                    const msgRes = await fetch(`${API_BASE}/api/messages?userId=${myUserId}&targetId=${currentTargetId}&type=${chatType}&since=${lastMsgTimestamp}`);
-                    if (msgRes.status === 403) {
-                        triggerForcedLogout("检测到非法身份，强制登出！");
+                    // 💡 采用精密自增游标同步：since_id=lastMsgId，彻底将时区偏差抛诸脑后
+                    const msgRes = await fetch(`${API_BASE}/api/messages?userId=${myUserId}&token=${myToken}&targetId=${currentTargetId}&type=${chatType}&since_id=${lastMsgId}`);
+                    if (msgRes.status === 403 || msgRes.status === 401) {
+                        triggerForcedLogout("身份校验失效，安全退出！");
                         return;
                     }
                     const newMessages = await msgRes.json();
                     if (newMessages.length > 0) {
                         localMessageCache = localMessageCache.concat(newMessages);
-                        // 更新最后一条消息的时间戳
-                        lastMsgTimestamp = Math.max(...localMessageCache.map(m => new Date(m.timestamp).getTime()));
+                        lastMsgId = Math.max(...localMessageCache.map(m => parseInt(m.id)));
                         renderMessages(localMessageCache);
                     }
                 }
@@ -224,9 +227,9 @@
                 const res = await fetch(`${API_BASE}/api/delete-friend`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: myUserId, friendId: friendId })
+                    body: JSON.stringify({ userId: myUserId, token: myToken, friendId: friendId })
                 });
-                if (res.status === 403) { triggerForcedLogout("账号已被销户！"); return; }
+                if (res.status === 403 || res.status === 401) { triggerForcedLogout("会话过期！"); return; }
                 if (currentTargetId === friendId) resetChatArea();
                 pullData();
             } catch (e) {}
@@ -239,9 +242,9 @@
                 const res = await fetch(`${API_BASE}/api/leave-group`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: myUserId, groupId: groupId })
+                    body: JSON.stringify({ userId: myUserId, token: myToken, groupId: groupId })
                 });
-                if (res.status === 403) { triggerForcedLogout("账号已被销户！"); return; }
+                if (res.status === 403 || res.status === 401) { triggerForcedLogout("会话过期！"); return; }
                 if (currentTargetId === groupId) resetChatArea();
                 pullData();
             } catch (e) {}
@@ -249,7 +252,7 @@
 
         function resetChatArea() {
             currentTargetId = "";
-            lastMsgTimestamp = 0;
+            lastMsgId = 0;
             localMessageCache = [];
             document.getElementById('chatTitle').innerText = "请选择聊天对象";
             document.getElementById('messageArea').innerHTML = "";
@@ -258,7 +261,7 @@
         function selectChat(id, name, type) {
             currentTargetId = id;
             chatType = type;
-            lastMsgTimestamp = 0; // 切群或切好友时，重置时间戳重新拉取整个对话
+            lastMsgId = 0; 
             localMessageCache = [];
             document.getElementById('chatTitle').innerText = name;
             document.getElementById('messageArea').innerHTML = '';
@@ -274,11 +277,10 @@
                 const res = await fetch(`${API_BASE}/api/send`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    // 💡 注意：我们删除了 payload 里的 from 字段！不允许前端自报身份！由后端 Session 鉴权说了算
-                    body: JSON.stringify({ userId: myUserId, to: currentTargetId, type: chatType, text: text })
+                    body: JSON.stringify({ userId: myUserId, token: myToken, to: currentTargetId, type: chatType, text: text })
                 });
-                if (res.status === 403) {
-                    triggerForcedLogout("身份验证失败，请重新登录！");
+                if (res.status === 403 || res.status === 401) {
+                    triggerForcedLogout("身份凭证越权拦截，请重新登录！");
                     return;
                 }
                 if (res.status === 400) {
@@ -310,9 +312,9 @@
             const res = await fetch(`${API_BASE}/api/add-friend`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: myUserId, friendId: friendId })
+                body: JSON.stringify({ userId: myUserId, token: myToken, friendId: friendId })
             });
-            if (res.status === 403) { triggerForcedLogout("账号已被销户！"); return; }
+            if (res.status === 403 || res.status === 401) { triggerForcedLogout("会话过期！"); return; }
             pullData();
         }
 
@@ -322,9 +324,9 @@
             const res = await fetch(`${API_BASE}/api/join-group`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: myUserId, groupId: groupId })
+                body: JSON.stringify({ userId: myUserId, token: myToken, groupId: groupId })
             });
-            if (res.status === 403) { triggerForcedLogout("账号已被销户！"); return; }
+            if (res.status === 403 || res.status === 401) { triggerForcedLogout("会话过期！"); return; }
             selectChat(groupId, '群聊: ' + groupId, 'group');
         }
     </script>
