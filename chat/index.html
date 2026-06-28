@@ -48,7 +48,7 @@
     <div class="auth-overlay" id="authOverlay">
         <div class="auth-box">
             <h2 id="authTitle">登录微聊</h2>
-            <input type="text" id="authUser" class="auth-input" placeholder="请输入微聊号">
+            <input type="text" id="authUser" class="auth-input" placeholder="请输入纯数字微聊号">
             <input type="password" id="authPass" class="auth-input" placeholder="请输入密码">
             
             <div class="captcha-container" id="captchaContainer">
@@ -111,6 +111,11 @@
             const pass = document.getElementById('authPass').value.trim();
             if (!user || !pass) { alert("请输入完整的微聊号和密码！"); return; }
             
+            if (isRegisterMode && !/^\d+$.test(user)) {
+                alert("注册失败：微聊号必须全部为纯数字（如 004）！");
+                return;
+            }
+
             const endpoint = isRegisterMode ? "/api/register" : "/api/login";
             const payload = { userId: user, password: pass };
             
