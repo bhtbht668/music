@@ -2,14 +2,18 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>微聊</title>
+    <!-- 引入 Cloudflare 人机验证脚本 -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: sans-serif; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; height: 100vh; }
-        .box { width: 300px; padding: 25px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        body { font-family: sans-serif; background-color: #f5f5f5; display: flex; justify-content: center; align-items: center; height: 100vh; padding: 20px; }
+        .box { width: 100%; max-width: 320px; padding: 25px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
         h2 { text-align: center; margin-bottom: 20px; color: #333; }
         input { width: 100%; padding: 12px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 4px; }
-        button { width: 100%; padding: 12px; background: #07c160; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; }
+        button { width: 100%; padding: 12px; background: #07c160; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 16px; margin-top: 10px; }
+        .cf-turnstile { margin-bottom: 15px; display: flex; justify-content: center; }
         p { text-align: center; margin-top: 15px; font-size: 13px; color: #576b95; cursor: pointer; }
     </style>
 </head>
@@ -18,6 +22,10 @@
         <h2 id="title">登录</h2>
         <input type="text" id="userId" placeholder="请输入微聊号">
         <input type="password" id="pass" placeholder="请输入密码">
+        
+        <!-- 人机验证组件 -->
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAADgSqARrC_gtNkkb"></div>
+        
         <button id="btn" onclick="go()">登录</button>
         <p id="toggle" onclick="swap()">没有账号？去注册</p>
     </div>
@@ -33,22 +41,21 @@
 
         async function go() {
             const userId = document.getElementById('userId').value;
-            const pass = document.getElementById('pass').value;
+            const password = document.getElementById('pass').value;
+            // 获取人机验证 Token
+            const token = document.querySelector('[name="cf-turnstile-response"]').value;
+            
+            if(!token) { alert("请先完成人机验证"); return; }
+
             try {
                 const res = await fetch("https://api.20140712.xyz" + (isReg ? "/api/register" : "/api/login"), {
                     method: 'POST',
                     headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ userId, password: pass })
+                    body: JSON.stringify({ userId, password, cf_token: token })
                 });
                 const d = await res.json();
-                if (d.success) {
-                    alert("成功");
-                } else {
-                    alert(d.error || "失败");
-                }
-            } catch (e) {
-                alert("连接服务器失败");
-            }
+                alert(d.success ? "成功" : (d.error || "失败"));
+            } catch (e) { alert("连接服务器失败"); }
         }
     </script>
 </body>
