@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>微聊</title>
-    <!-- 引入人机验证脚本 -->
+    <!-- 引入 Cloudflare 人机验证脚本 -->
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -61,15 +61,12 @@
                 const d = await res.json();
                 
                 if (d.success) {
-                    alert(isReg ? "注册成功，即将自动登录" : "登录成功");
-                    // 保存登录凭证
+                    // 核心修改：移除 alert，直接保存凭证并跳转
                     localStorage.setItem('userToken', d.token || "active");
                     localStorage.setItem('userId', userId);
-                    // 跳转至主界面 (请确保你有一个 chat.html 或 main.html)
                     window.location.href = "chat.html";
                 } else {
                     alert(d.error || "操作失败");
-                    // 验证失败时重置验证码
                     if(typeof turnstile !== 'undefined') turnstile.reset();
                 }
             } catch (e) { 
