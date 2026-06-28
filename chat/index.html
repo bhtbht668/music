@@ -52,7 +52,7 @@
             <input type="password" id="authPass" class="auth-input" placeholder="请输入密码">
             
             <div class="captcha-container" id="captchaContainer">
-                <div class="cf-turnstile" id="turnstileWidget" data-sitekey="0x4AAAAAADgSqARrC_gtNkkb"></div>
+                <div class="cf-turnstile" id="turnstileWidget" data-sitekey="0x4AAAAMADgSqARrC_gtNkkb"></div>
             </div>
 
             <button class="auth-submit" id="authBtn" onclick="handleAuthSubmit()">登录</button>
@@ -109,9 +109,9 @@
         async function handleAuthSubmit() {
             const user = document.getElementById('authUser').value.trim();
             const pass = document.getElementById('authPass').value.trim();
-            if (!user || !pass) { alert("请输入完整的微聊号和密码！"); return; }
+            if (!user || !pass) { alert("请输入完整的微聊号 and 密码！"); return; }
             
-            if (isRegisterMode && !/^\d+$.test(user)) {
+            if (isRegisterMode && !/^\d+$/.test(user)) {
                 alert("注册失败：微聊号必须全部为纯数字（如 004）！");
                 return;
             }
@@ -266,6 +266,11 @@
                 });
                 if (res.status === 403) {
                     triggerForcedLogout("您的账号已被管理员注销，无法发送消息！");
+                    return;
+                }
+                if (res.status === 400) {
+                    const errData = await res.json();
+                    alert(errData.error || "发送失败");
                     return;
                 }
                 input.value = '';
