@@ -52,7 +52,7 @@
             <input type="password" id="authPass" class="auth-input" placeholder="请输入密码">
             
             <div class="captcha-container" id="captchaContainer">
-                <div class="cf-turnstile" id="turnstileWidget" data-sitekey="0x4AAAAMADgSqARrC_gtNkkb"></div>
+                <div class="cf-turnstile" id="turnstileWidget" data-sitekey="0x4AAAAAADgSqARrC_gtNkkb"></div>
             </div>
 
             <button class="auth-submit" id="authBtn" onclick="handleAuthSubmit()">登录</button>
@@ -88,6 +88,8 @@
         let currentTargetId = "";
         let chatType = "";
         let isRegisterMode = false;
+        let lastMsgTimestamp = 0; // 💡 记录最后一条消息的时间戳，实现增量拉取
+        let localMessageCache = []; // 本地消息缓存
 
         function toggleAuthMode() {
             isRegisterMode = !isRegisterMode;
@@ -109,10 +111,10 @@
         async function handleAuthSubmit() {
             const user = document.getElementById('authUser').value.trim();
             const pass = document.getElementById('authPass').value.trim();
-            if (!user || !pass) { alert("请输入完整的微聊号 and 密码！"); return; }
+            if (!user || !pass) { alert("请输入完整的微聊号和密码！"); return; }
             
             if (isRegisterMode && !/^\d+$/.test(user)) {
-                alert("注册失败：微聊号必须全部为纯数字（如 004）！");
+                alert("注册失败：微聊号必须全部为纯数字！");
                 return;
             }
 
@@ -180,13 +182,19 @@
                 renderList(listData);
 
                 if (currentTargetId) {
-                    const msgRes = await fetch(`${API_BASE}/api/messages?userId=${myUserId}&targetId=${currentTargetId}&type=${chatType}`);
+                    // 💡 增量拉取更新：带上当前本地最新的最后一条消息时间戳
+                    const msgRes = await fetch(`${API_BASE}/api/messages?userId=${myUserId}&targetId=${currentTargetId}&type=${chatType}&since=${lastMsgTimestamp}`);
                     if (msgRes.status === 403) {
                         triggerForcedLogout("检测到非法身份，强制登出！");
                         return;
                     }
-                    const messages = await msgRes.json();
-                    renderMessages(messages);
+                    const newMessages = await msgRes.json();
+                    if (newMessages.length > 0) {
+                        localMessageCache = localMessageCache.concat(newMessages);
+                        // 更新最后一条消息的时间戳
+                        lastMsgTimestamp = Math.max(...localMessageCache.map(m => new Date(m.timestamp).getTime()));
+                        renderMessages(localMessageCache);
+                    }
                 }
             } catch (e) {}
         }
@@ -241,6 +249,8 @@
 
         function resetChatArea() {
             currentTargetId = "";
+            lastMsgTimestamp = 0;
+            localMessageCache = [];
             document.getElementById('chatTitle').innerText = "请选择聊天对象";
             document.getElementById('messageArea').innerHTML = "";
         }
@@ -248,6 +258,8 @@
         function selectChat(id, name, type) {
             currentTargetId = id;
             chatType = type;
+            lastMsgTimestamp = 0; // 切群或切好友时，重置时间戳重新拉取整个对话
+            localMessageCache = [];
             document.getElementById('chatTitle').innerText = name;
             document.getElementById('messageArea').innerHTML = '';
             pullData();
@@ -262,10 +274,11 @@
                 const res = await fetch(`${API_BASE}/api/send`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ from: myUserId, to: currentTargetId, type: chatType, text: text })
+                    // 💡 注意：我们删除了 payload 里的 from 字段！不允许前端自报身份！由后端 Session 鉴权说了算
+                    body: JSON.stringify({ userId: myUserId, to: currentTargetId, type: chatType, text: text })
                 });
                 if (res.status === 403) {
-                    triggerForcedLogout("您的账号已被管理员注销，无法发送消息！");
+                    triggerForcedLogout("身份验证失败，请重新登录！");
                     return;
                 }
                 if (res.status === 400) {
