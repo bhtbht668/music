@@ -4,96 +4,69 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>微聊</title>
+    <!-- 引入 Cloudflare 人机验证脚本 -->
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
-        /* 强制页面填满窗口，并居中显示 */
-        html, body { 
-            height: 100%; 
+        /* 使用 flex 布局让盒子居中，并限制高度 */
+        body { 
             margin: 0; 
             padding: 0; 
             display: flex; 
             justify-content: center; 
             align-items: center; 
-            background-color: #ededed; 
+            min-height: 100vh; 
+            background-color: #ededed;
         }
-        
-        /* 调整盒子比例，设置固定的最大宽度 */
+        /* 增加最小高度和圆角，防止盒子被压扁 */
         .auth-box { 
-            width: 90%; 
-            max-width: 360px; 
-            padding: 40px 30px; 
+            width: 360px; 
+            min-height: 400px; 
             background: white; 
+            padding: 40px; 
             border-radius: 12px; 
             box-shadow: 0 8px 24px rgba(0,0,0,0.1); 
-            text-align: center; 
+            text-align: center;
         }
-        
-        /* 输入框增加间距，使其看起来不那么扁 */
-        .auth-input { 
-            width: 100%; 
-            padding: 12px; 
-            margin-bottom: 20px; 
-            border: 1px solid #ccc; 
-            border-radius: 6px; 
-            box-sizing: border-box; 
-            font-size: 16px;
-        }
-        
-        .auth-submit { 
-            width: 100%; 
-            padding: 12px; 
-            background: #07c160; 
-            color: white; 
-            border: none; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-size: 16px;
-            font-weight: bold;
-        }
+        .auth-input { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 6px; box-sizing: border-box; }
+        .auth-submit { width: 100%; padding: 12px; background: #07c160; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top: 10px; }
+        #captchaContainer { margin: 20px 0; display: flex; justify-content: center; }
     </style>
 </head>
 <body>
     <div class="auth-box">
-        <h2 id="authTitle">登录微聊</h2>
+        <h2 id="authTitle">注册微聊</h2>
         <input type="text" id="authUser" class="auth-input" placeholder="请输入微聊号">
         <input type="password" id="authPass" class="auth-input" placeholder="请输入密码">
-        <button class="auth-submit" id="authBtn" onclick="handleAuthSubmit()">登录</button>
-        <div style="margin-top:15px; font-size:12px; cursor:pointer; color:#576b95;" onclick="toggleMode()" id="toggleBtn">没有账号？去注册</div>
+        
+        <!-- 人机验证挂载点 -->
+        <div id="captchaContainer">
+            <div class="cf-turnstile" data-sitekey="0x4AAAAAADgSqARrC_gtNkkb"></div>
+        </div>
+
+        <button class="auth-submit" onclick="handleAuthSubmit()">注册并登录</button>
     </div>
 
     <script>
-        // 记得把下面这一行换成你的真实 API 地址
         const API_BASE = "https://api.20140712.xyz"; 
-        let isRegister = false;
-
-        function toggleMode() {
-            isRegister = !isRegister;
-            document.getElementById('authTitle').innerText = isRegister ? "注册微聊" : "登录微聊";
-            document.getElementById('authBtn').innerText = isRegister ? "注册并登录" : "登录";
-            document.getElementById('toggleBtn').innerText = isRegister ? "已有账号？去登录" : "没有账号？去注册";
-        }
 
         async function handleAuthSubmit() {
             const user = document.getElementById('authUser').value.trim();
             const pass = document.getElementById('authPass').value.trim();
+            // 获取人机验证结果
+            const token = document.querySelector('[name="cf-turnstile-response"]')?.value;
+
             if (!user || !pass) { alert("请输入账号和密码"); return; }
-            
-            const endpoint = isRegister ? "/api/register" : "/api/login";
+            if (!token) { alert("请先完成人机验证"); return; }
             
             try {
-                const res = await fetch(`${API_BASE}${endpoint}`, {
+                const res = await fetch(`${API_BASE}/api/register`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: user, password: pass })
+                    body: JSON.stringify({ userId: user, password: pass, cf_token: token })
                 });
                 const data = await res.json();
-                if (data.success) {
-                    alert(isRegister ? "注册成功！" : "登录成功！");
-                } else {
-                    alert("操作失败，请重试");
-                }
-            } catch(e) {
-                alert("网络连接失败，请检查 API 地址是否正确");
-            }
+                alert(data.success ? "注册成功！" : "注册失败：" + (data.error || ""));
+            } catch(e) { alert("网络错误"); }
         }
     </script>
 </body>
