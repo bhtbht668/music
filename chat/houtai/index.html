@@ -2,118 +2,64 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>微聊核心数据后台</title>
     <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f4f6f9; color: #333; padding: 30px; }
-        .admin-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; margin-bottom: 30px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        .admin-header h1 { font-size: 20px; color: #1e293b; }
-        .refresh-btn { background-color: #007bc7; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; font-weight: bold; }
-        .refresh-btn:hover { background-color: #005a94; }
-        .panel-container { display: flex; gap: 20px; flex-wrap: wrap; }
-        .panel { flex: 1; min-width: 450px; background: white; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); padding: 20px; margin-bottom: 20px; }
-        .panel.full-width { flex-basis: 100%; }
-        .panel h2 { font-size: 16px; margin-bottom: 15px; color: #475569; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; }
-        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
-        th, td { padding: 12px; border-bottom: 1px solid #f1f5f9; word-break: break-all; }
-        th { background-color: #f8fafc; color: #64748b; font-weight: 600; }
-        tr:hover { background-color: #f8fafc; }
-        .badge { display: inline-block; padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: bold; }
-        .badge.private { background-color: #e0f2fe; color: #0369a1; }
-        .badge.group { background-color: #dcfce7; color: #15803d; }
-        .action-btn { color: #ef4444; background: #fff1f1; border: 1px solid #ffcccc; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; }
-        .action-btn:hover { background: #ef4444; color: white; }
+        body { font-family: sans-serif; background-color: #f4f6f9; padding: 30px; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 30px; }
+        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; border-bottom: 1px solid #eee; }
+        .action-btn { color: red; cursor: pointer; border: none; background: none; font-weight: bold; }
     </style>
 </head>
 <body>
-
     <div class="admin-header">
-        <h1>微聊云端数据监控总后台</h1>
-        <button class="refresh-btn" onclick="loadAdminData()">⚙️ 强制刷新核心数据</button>
+        <h1>微聊数据监控后台</h1>
+        <button onclick="loadAdminData()">强制刷新</button>
     </div>
-
-    <div class="panel-container">
-        <div class="panel">
-            <h2>全量注册账户监控 (<span id="userCount">0</span>)</h2>
-            <table>
-                <thead><tr><th>微聊号</th><th>安全凭证</th><th>操作</th></tr></thead>
-                <tbody id="userTableBody"><tr><td colspan="3" style="text-align:center;">请等待授权加载...</td></tr></tbody>
-            </table>
-        </div>
-        <div class="panel">
-            <h2>全量活动群聊监控 (<span id="groupCount">0</span>)</h2>
-            <table>
-                <thead><tr><th>群聊号</th><th>状态</th><th>操作</th></tr></thead>
-                <tbody id="groupTableBody"><tr><td colspan="3" style="text-align:center;">请等待授权加载...</td></tr></tbody>
-            </table>
-        </div>
-        <div class="panel full-width">
-            <h2>全网实时通信对话流监控 (<span id="msgCount">0</span>)</h2>
-            <table>
-                <thead><tr><th>发送者</th><th>接收目标</th><th>类型</th><th>内容</th><th>时间</th></tr></thead>
-                <tbody id="msgTableBody"><tr><td colspan="5" style="text-align:center;">请等待授权加载...</td></tr></tbody>
-            </table>
-        </div>
+    <div class="panel">
+        <h2>用户监控 (<span id="userCount">0</span>)</h2>
+        <table>
+            <thead><tr><th>微聊号</th><th>密码哈希</th><th>操作</th></tr></thead>
+            <tbody id="userTableBody"></tbody>
+        </table>
+    </div>
+    <div class="panel">
+        <h2>实时消息流 (<span id="msgCount">0</span>)</h2>
+        <table>
+            <thead><tr><th>发送者</th><th>接收目标</th><th>内容</th></tr></thead>
+            <tbody id="msgTableBody"></tbody>
+        </table>
     </div>
 
     <script>
         const API_BASE = "https://api.20140712.xyz";
-        let adminToken = "";
-
-        // 严格鉴权：密码输入为空或取消直接渲染错误，不再进行后续 API 调用
-        function initAdminAuth() {
-            const inputKey = prompt("请输入超级管理员安全指令密匙:");
-            if (!inputKey || inputKey.trim() === "") { 
-                renderAuthError(); 
-                return; 
-            }
-            adminToken = inputKey.trim();
-            loadAdminData();
-        }
-
-        function renderAuthError() {
-            document.body.innerHTML = "<h1 style='text-align:center; margin-top:100px; color:#ef4444;'>401 未获授权</h1><p style='text-align:center;'>访问被拒绝。</p>";
-        }
+        let adminToken = prompt("请输入管理员密匙:");
 
         async function loadAdminData() {
-            try {
-                // 必须在 Headers 中携带 Authorization 才能通过后端校验
-                const headers = { "Authorization": adminToken };
-                
-                const userRes = await fetch(`${API_BASE}/api/admin/users`, { headers });
-                if (userRes.status === 401) { renderAuthError(); return; }
-                
-                const data = await userRes.json();
-                renderUsers(data.users || []);
-                renderGroups(data.groups || []);
+            const headers = { "Authorization": adminToken };
+            const uRes = await fetch(`${API_BASE}/api/admin/users`, { headers });
+            const uData = await uRes.json();
+            document.getElementById('userCount').innerText = uData.users.length;
+            document.getElementById('userTableBody').innerHTML = uData.users.map(u => 
+                `<tr><td>${u.userId}</td><td>${u.password.substring(0,8)}...</td><td><button class="action-btn" onclick="kickUser('${u.userId}')">销户</button></td></tr>`
+            ).join('');
 
-                const msgRes = await fetch(`${API_BASE}/api/admin/messages`, { headers });
-                const messages = await msgRes.json();
-                renderMessages(messages || []);
-            } catch (e) {
-                alert("网络连接失败，请确保已在服务端开启CORS权限且域名匹配。");
-            }
-        }
-
-        function renderUsers(users) {
-            document.getElementById('userCount').innerText = users.length;
-            document.getElementById('userTableBody').innerHTML = users.length ? users.map(u => `<tr><td>${u.userId}</td><td>${u.password.substring(0,8)}...</td><td><button class="action-btn" onclick="kickUser('${u.userId}')">销户</button></td></tr>`).join('') : `<tr><td colspan="3" style="text-align:center;">暂无数据</td></tr>`;
-        }
-        function renderGroups(groups) {
-            document.getElementById('groupCount').innerText = groups.length;
-            document.getElementById('groupTableBody').innerHTML = groups.length ? groups.map(g => `<tr><td>${g}</td><td>存活</td><td><button class="action-btn" onclick="dissolveGroup('${g}')">解散</button></td></tr>`).join('') : `<tr><td colspan="3" style="text-align:center;">暂无数据</td></tr>`;
-        }
-        function renderMessages(msgs) {
-            document.getElementById('msgCount').innerText = msgs.length;
-            document.getElementById('msgTableBody').innerHTML = msgs.length ? msgs.map(m => `<tr><td><code>${m.from_user}</code></td><td><code>${m.to_id}</code></td><td><span class="badge ${m.type}">${m.type}</span></td><td>${m.content}</td><td style="color:#999;font-size:12px;">${m.timestamp}</td></tr>`).join('') : `<tr><td colspan="5" style="text-align:center;">暂无数据</td></tr>`;
+            const mRes = await fetch(`${API_BASE}/api/admin/messages`, { headers });
+            const mData = await mRes.json();
+            document.getElementById('msgCount').innerText = mData.length;
+            document.getElementById('msgTableBody').innerHTML = mData.map(m => 
+                `<tr><td>${m.from_user}</td><td>${m.to_id}</td><td>${m.content}</td></tr>`
+            ).join('');
         }
         
-        async function kickUser(t) { if(confirm(`确定注销 ${t}?`)) { await fetch(`${API_BASE}/api/admin/delete-user`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':adminToken}, body:JSON.stringify({targetUserId:t})}); loadAdminData(); } }
-        async function dissolveGroup(g) { if(confirm(`确定解散群 ${g}?`)) { await fetch(`${API_BASE}/api/admin/delete-group`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':adminToken}, body:JSON.stringify({targetGroupId:g})}); loadAdminData(); } }
+        async function kickUser(t) { 
+            await fetch(`${API_BASE}/api/admin/delete-user`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':adminToken}, body:JSON.stringify({targetUserId:t})}); 
+            loadAdminData(); 
+        }
 
-        initAdminAuth();
+        if(adminToken) loadAdminData();
     </script>
 </body>
 </html>
