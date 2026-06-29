@@ -1,65 +1,59 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>微聊核心数据后台</title>
-    <link rel="icon" href="data:;base64,iVBORw0KGgo=">
     <style>
-        body { font-family: sans-serif; background-color: #f4f6f9; padding: 30px; }
-        .admin-header { display: flex; justify-content: space-between; align-items: center; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 30px; }
-        .panel { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        table { width: 100%; border-collapse: collapse; }
-        th, td { padding: 12px; border-bottom: 1px solid #eee; }
-        .action-btn { color: red; cursor: pointer; border: none; background: none; font-weight: bold; }
+        body { font-family: 'Segoe UI', sans-serif; background: #f0f2f5; padding: 20px; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        .refresh-btn { background: #007bff; color: white; padding: 12px 30px; border: none; border-radius: 6px; font-size: 16px; cursor: pointer; }
+        .panel { background: white; padding: 20px; border-radius: 10px; margin-bottom: 20px; }
+        table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+        th, td { padding: 15px; border-bottom: 1px solid #ddd; text-align: left; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .action-btn { color: #dc3545; cursor: pointer; background: none; border: 1px solid #dc3545; padding: 5px 10px; border-radius: 4px; }
     </style>
 </head>
 <body>
     <div class="admin-header">
-        <h1>微聊数据监控后台</h1>
-        <button onclick="loadAdminData()">强制刷新</button>
+        <h1>微聊超级管理后台</h1>
+        <button class="refresh-btn" onclick="loadData()">🔄 强制刷新监控面板</button>
     </div>
+
     <div class="panel">
-        <h2>用户监控 (<span id="userCount">0</span>)</h2>
-        <table>
-            <thead><tr><th>微聊号</th><th>密码哈希</th><th>操作</th></tr></thead>
-            <tbody id="userTableBody"></tbody>
+        <h2>用户与群聊监控</h2>
+        <table id="userTable">
+            <thead><tr><th>ID</th><th>类型</th><th>操作</th></tr></thead>
+            <tbody></tbody>
         </table>
     </div>
+
     <div class="panel">
-        <h2>实时消息流 (<span id="msgCount">0</span>)</h2>
-        <table>
-            <thead><tr><th>发送者</th><th>接收目标</th><th>内容</th></tr></thead>
-            <tbody id="msgTableBody"></tbody>
+        <h2>实时全网通信流</h2>
+        <table id="msgTable">
+            <thead><tr><th style="width:15%">发送者</th><th style="width:15%">接收</th><th>内容</th><th style="width:15%">时间</th></tr></thead>
+            <tbody></tbody>
         </table>
     </div>
 
     <script>
-        const API_BASE = "https://api.20140712.xyz";
-        let adminToken = prompt("请输入管理员密匙:");
+        const adminToken = prompt("请输入密匙:");
+        async function loadData() {
+            const res = await fetch("https://api.20140712.xyz/api/admin/data", { headers: { "Authorization": adminToken } });
+            const data = await res.json();
+            
+            // 渲染用户/群聊
+            const uBody = document.querySelector("#userTable tbody");
+            uBody.innerHTML = [...data.users.map(u => `<tr><td>${u.userId}</td><td>用户</td><td><button class="action-btn" onclick="del('user','${u.userId}')">删除</button></td></tr>`),
+                               ...data.groups.map(g => `<tr><td>${g.groupId}</td><td>群聊</td><td><button class="action-btn" onclick="del('group','${g.groupId}')">解散</button></td></tr>`)].join('');
 
-        async function loadAdminData() {
-            const headers = { "Authorization": adminToken };
-            const uRes = await fetch(`${API_BASE}/api/admin/users`, { headers });
-            const uData = await uRes.json();
-            document.getElementById('userCount').innerText = uData.users.length;
-            document.getElementById('userTableBody').innerHTML = uData.users.map(u => 
-                `<tr><td>${u.userId}</td><td>${u.password.substring(0,8)}...</td><td><button class="action-btn" onclick="kickUser('${u.userId}')">销户</button></td></tr>`
-            ).join('');
-
-            const mRes = await fetch(`${API_BASE}/api/admin/messages`, { headers });
-            const mData = await mRes.json();
-            document.getElementById('msgCount').innerText = mData.length;
-            document.getElementById('msgTableBody').innerHTML = mData.map(m => 
-                `<tr><td>${m.from_user}</td><td>${m.to_id}</td><td>${m.content}</td></tr>`
-            ).join('');
+            // 渲染消息流 (强制对齐)
+            document.querySelector("#msgTable tbody").innerHTML = data.messages.map(m => `<tr><td>${m.from_user}</td><td>${m.to_id}</td><td>${m.content}</td><td>${m.timestamp}</td></tr>`).join('');
         }
-        
-        async function kickUser(t) { 
-            await fetch(`${API_BASE}/api/admin/delete-user`, { method:'POST', headers:{'Content-Type':'application/json','Authorization':adminToken}, body:JSON.stringify({targetUserId:t})}); 
-            loadAdminData(); 
+        async function del(type, id) {
+            if(confirm("确定操作?")) {
+                await fetch("https://api.20140712.xyz/api/admin/delete", { method: 'POST', headers: { "Authorization": adminToken, "Content-Type": "application/json" }, body: JSON.stringify({type, id}) });
+                loadData();
+            }
         }
-
-        if(adminToken) loadAdminData();
+        loadData();
     </script>
 </body>
 </html>
