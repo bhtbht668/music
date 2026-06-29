@@ -2,12 +2,53 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>微聊</title>
     <style>
-        body { font-family: sans-serif; background-color: #ededed; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .auth-box { width: 320px; padding: 30px; background: white; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
-        .auth-input { width: 100%; padding: 10px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 4px; box-sizing: border-box; }
-        .auth-submit { width: 100%; padding: 10px; background: #07c160; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        /* 强制页面填满窗口，并居中显示 */
+        html, body { 
+            height: 100%; 
+            margin: 0; 
+            padding: 0; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            background-color: #ededed; 
+        }
+        
+        /* 调整盒子比例，设置固定的最大宽度 */
+        .auth-box { 
+            width: 90%; 
+            max-width: 360px; 
+            padding: 40px 30px; 
+            background: white; 
+            border-radius: 12px; 
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1); 
+            text-align: center; 
+        }
+        
+        /* 输入框增加间距，使其看起来不那么扁 */
+        .auth-input { 
+            width: 100%; 
+            padding: 12px; 
+            margin-bottom: 20px; 
+            border: 1px solid #ccc; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            font-size: 16px;
+        }
+        
+        .auth-submit { 
+            width: 100%; 
+            padding: 12px; 
+            background: #07c160; 
+            color: white; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 16px;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
