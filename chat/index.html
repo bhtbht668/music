@@ -4,41 +4,61 @@
     <meta charset="UTF-8">
     <title>微聊客户端</title>
     <style>
-        body { display: flex; height: 100vh; margin: 0; font-family: sans-serif; }
-        #sidebar { width: 250px; background: #f8f9fa; padding: 15px; border-right: 1px solid #ddd; }
-        ul { list-style: none; padding: 0; }
-        li { padding: 10px; background: white; margin-bottom: 8px; cursor: pointer; border-radius: 4px; border: 1px solid #eee; }
+        body { display: flex; height: 100vh; margin: 0; }
+        #sidebar { width: 250px; background: #f8f9fa; border-right: 1px solid #ddd; padding: 10px; }
+        #chat-area { flex: 1; display: flex; flex-direction: column; padding: 20px; }
+        #msgBox { flex: 1; border: 1px solid #ccc; overflow-y: auto; margin-bottom: 10px; padding: 10px; }
+        li { padding: 10px; cursor: pointer; border-bottom: 1px solid #eee; }
+        li:hover { background: #e9ecef; }
     </style>
 </head>
 <body>
     <div id="sidebar">
-        <h3>好友</h3>
+        <h3>好友列表</h3>
         <ul id="friendList"></ul>
-        <h3>群组</h3>
-        <ul id="groupList"></ul>
+    </div>
+    <div id="chat-area">
+        <h2 id="chatTitle">请选择好友</h2>
+        <div id="msgBox"></div>
+        <div>
+            <input id="msgInput" style="width: 80%">
+            <button onclick="sendMessage()">发送</button>
+        </div>
     </div>
 
     <script>
-        // 关键点：统一使用完整 API 地址
         const API_BASE = "https://api.20140712.xyz";
-        let myId = "001"; // 这里假设你登录后获取到了 ID
+        let myId = "001"; // 假设你当前登录的是001
+        let currentFriend = "";
 
+        // 1. 初始化加载好友
         async function loadChatList() {
-            try {
-                // 必须使用完整路径，防止浏览器自动拼凑路径导致 404
-                const res = await fetch(`${API_BASE}/api/list?userId=${myId}`);
-                const data = await res.json();
-                
-                // 渲染好友
-                document.getElementById("friendList").innerHTML = data.friends.map(f => `<li>${f.friendId}</li>`).join('');
-                // 渲染群组
-                document.getElementById("groupList").innerHTML = data.groups.map(g => `<li>${g.groupId}</li>`).join('');
-            } catch (e) {
-                console.error("加载列表失败:", e);
-            }
+            const res = await fetch(`${API_BASE}/api/list?userId=${myId}`);
+            const data = await res.json();
+            const list = document.getElementById("friendList");
+            list.innerHTML = data.friends.map(f => `<li onclick="selectFriend('${f.friendId}')">${f.friendId}</li>`).join('');
         }
 
-        // 初始化加载
+        // 2. 选中好友并开始聊天
+        function selectFriend(friendId) {
+            currentFriend = friendId;
+            document.getElementById("chatTitle").innerText = "正在和 " + friendId + " 聊天";
+            document.getElementById("msgBox").innerHTML = ""; // 清空消息区
+        }
+
+        // 3. 发送消息
+        async function sendMessage() {
+            const content = document.getElementById("msgInput").value;
+            if (!currentFriend) return alert("请先选个好友！");
+            
+            await fetch(`${API_BASE}/api/send`, {
+                method: 'POST',
+                body: JSON.stringify({ from: myId, to: currentFriend, content })
+            });
+            document.getElementById("msgBox").innerHTML += `<div>我: ${content}</div>`;
+            document.getElementById("msgInput").value = "";
+        }
+
         loadChatList();
     </script>
 </body>
