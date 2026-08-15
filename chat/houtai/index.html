@@ -1,123 +1,148 @@
-export default {
-  async fetch(request, env) {
-    const corsHeaders = {
-      "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    };
-    if (request.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>微聊 - 全新超级管理后台</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f4f7f6; color: #333; padding: 30px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .admin-header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 25px 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .admin-header h1 { font-size: 24px; color: #111; }
+        .refresh-btn { background: #07c160; color: white; padding: 10px 24px; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: 500; transition: background 0.2s; }
+        .refresh-btn:hover { background: #06ad56; }
+        .panel { background: white; padding: 25px 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; }
+        .panel h2 { font-size: 18px; margin-bottom: 15px; color: #444; border-left: 4px solid #07c160; padding-left: 10px; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 14px 16px; border-bottom: 1px solid #eee; text-align: left; font-size: 14px; }
+        th { background: #fafafa; color: #666; font-weight: 600; }
+        tr:hover { background: #fcfcfc; }
+        .action-btn { color: #ff4d4f; cursor: pointer; background: #fff1f0; border: 1px solid #ffa39e; padding: 6px 14px; border-radius: 4px; font-size: 13px; transition: all 0.2s; }
+        .action-btn:hover { background: #ff4d4f; color: white; }
+        .badge { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; }
+        .badge-user { background: #e6f7ff; color: #1890ff; }
+        .badge-group { background: #f6ffed; color: #52c41a; }
+        .empty-tip { text-align: center; color: #999; padding: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="admin-header">
+            <h1>微聊系统超级管理后台</h1>
+            <button class="refresh-btn" onclick="loadAdminData()">🔄 刷新监控数据</button>
+        </div>
 
-    const url = new URL(request.url);
-    const method = request.method;
+        <div class="panel">
+            <h2>用户与群聊监控中心</h2>
+            <table id="userTable">
+                <thead>
+                    <tr>
+                        <th>目标 ID / 号码</th>
+                        <th>类型</th>
+                        <th style="width: 120px;">管理操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="3" class="empty-tip">正在加载数据...</td></tr>
+                </tbody>
+            </table>
+        </div>
 
-    try {
-      // 1. 登录
-      if (url.pathname === "/api/login" && method === "POST") {
-        const { userId, password } = await request.json();
-        const user = await env.DB.prepare("SELECT * FROM users WHERE userId = ? AND password = ?").bind(userId, password).first();
-        return new Response(JSON.stringify({ success: !!user, error: user ? null : "账号或密码错误" }), { headers: corsHeaders });
-      }
+        <div class="panel">
+            <h2>全网实时通信消息流</h2>
+            <table id="msgTable">
+                <thead>
+                    <tr>
+                        <th style="width: 20%;">发送者</th>
+                        <th style="width: 20%;">接收目标</th>
+                        <th>消息内容</th>
+                        <th style="width: 25%;">发送时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td colspan="4" class="empty-tip">正在加载数据...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
 
-      // 2. 注册 (已增加查重与友好提示)
-      if (url.pathname === "/api/register" && method === "POST") {
-        const { userId, password } = await request.json();
-        const existing = await env.DB.prepare("SELECT userId FROM users WHERE userId = ?").bind(userId).first();
-        if (existing) {
-          return new Response(JSON.stringify({ success: false, error: "已有人注册此账号" }), { headers: corsHeaders });
+    <script>
+        const API_BASE = "https://api.20140712.xyz";
+        const adminToken = prompt("请输入后台管理密钥 (Authorization):") || "";
+
+        async function loadAdminData() {
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/data`, { 
+                    headers: { "Authorization": adminToken } 
+                });
+                if (res.status === 404) {
+                    alert("后端未检测到管理员接口，请检查后端 wocker.js 是否已更新！");
+                    return;
+                }
+                const data = await res.json();
+                
+                // 渲染用户与群聊列表
+                const uBody = document.querySelector("#userTable tbody");
+                let rows = "";
+                
+                if (data.users && data.users.length > 0) {
+                    data.users.forEach(u => {
+                        rows += `<tr><td>${u.userId}</td><td><span class="badge badge-user">用户</span></td><td><button class="action-btn" onclick="delItem('user', '${u.userId}')">删除用户</button></td></tr>`;
+                    });
+                }
+                if (data.groups && data.groups.length > 0) {
+                    data.groups.forEach(g => {
+                        rows += `<tr><td>${g.groupId}</td><td><span class="badge badge-group">群聊</span></td><td><button class="action-btn" onclick="delItem('group', '${g.groupId}')">解散群聊</button></td></tr>`;
+                    });
+                }
+                if (!rows) {
+                    rows = `<tr><td colspan="3" class="empty-tip">暂无用户或群聊数据</td></tr>`;
+                }
+                uBody.innerHTML = rows;
+
+                // 渲染实时消息流
+                const mBody = document.querySelector("#msgTable tbody");
+                let mRows = "";
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(m => {
+                        mRows += `<tr><td>${m.from_user}</td><td>${m.to_id}</td><td>${escapeHtml(m.content)}</td><td>${m.timestamp || '-'}</td></tr>`;
+                    });
+                } else {
+                    mRows = `<tr><td colspan="4" class="empty-tip">暂无聊天消息记录</td></tr>`;
+                }
+                mBody.innerHTML = mRows;
+
+            } catch (e) {
+                alert("加载后台数据失败，请检查网络或后端接口。");
+            }
         }
-        await env.DB.prepare("INSERT INTO users (userId, password) VALUES (?, ?)").bind(userId, password).run();
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-      }
 
-      // 3. 获取列表
-      if (url.pathname === "/api/list") {
-        const userId = url.searchParams.get("userId");
-        const friends = await env.DB.prepare("SELECT friendId FROM friends WHERE userId = ?").bind(userId).all();
-        const groups = await env.DB.prepare("SELECT groupId FROM groups WHERE userId = ?").bind(userId).all();
-        return new Response(JSON.stringify({ 
-            friends: friends ? friends.results.map(f => f.friendId) : [], 
-            groups: groups ? groups.results.map(g => g.groupId) : [] 
-        }), { headers: corsHeaders });
-      }
-
-      // 4. 获取聊天记录 (双向私聊与群聊查询)
-      if (url.pathname === "/api/messages") {
-        const userId = url.searchParams.get("userId");
-        const targetId = url.searchParams.get("targetId");
-        const type = url.searchParams.get("type");
-        let msgs;
-        if (type === "group") {
-          msgs = await env.DB.prepare("SELECT * FROM messages WHERE to_id = ? AND type='group' ORDER BY timestamp ASC").bind(targetId).all();
-        } else {
-          msgs = await env.DB.prepare("SELECT * FROM messages WHERE (from_user = ? AND to_id = ? AND type='private') OR (from_user = ? AND to_id = ? AND type='private') ORDER BY timestamp ASC").bind(userId, targetId, targetId, userId).all();
+        async function delItem(type, id) {
+            if (!confirm(`确定要${type === 'user' ? '删除用户' : '解散群聊'} [ ${id} ] 吗？`)) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/delete`, { 
+                    method: 'POST', 
+                    headers: { "Authorization": adminToken, "Content-Type": "application/json" }, 
+                    body: JSON.stringify({ type, id }) 
+                });
+                const result = await res.json();
+                if (result.success) {
+                    loadAdminData();
+                } else {
+                    alert("操作失败");
+                }
+            } catch (e) {
+                alert("网络请求失败");
+            }
         }
-        return new Response(JSON.stringify(msgs ? msgs.results : []), { headers: corsHeaders });
-      }
 
-      // 5. 发送消息
-      if (url.pathname === "/api/send" && method === "POST") {
-        const { from, to, type, text } = await request.json();
-        await env.DB.prepare("INSERT INTO messages (from_user, to_id, type, content) VALUES (?, ?, ?, ?)").bind(from, to, type, text).run();
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-      }
-
-      // 6. 加好友 (双向写入)
-      if (url.pathname === "/api/add-friend" && method === "POST") {
-        const { userId, friendId } = await request.json();
-        await env.DB.prepare("INSERT OR IGNORE INTO friends (userId, friendId) VALUES (?, ?)").bind(userId, friendId).run();
-        await env.DB.prepare("INSERT OR IGNORE INTO friends (userId, friendId) VALUES (?, ?)").bind(friendId, userId).run();
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-      }
-
-      // 7. 进群
-      if (url.pathname === "/api/join-group" && method === "POST") {
-        const { userId, groupId } = await request.json();
-        await env.DB.prepare("INSERT OR IGNORE INTO groups (userId, groupId) VALUES (?, ?)").bind(userId, groupId).run();
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-      }
-
-      // 8. 删除好友 (双向删除)
-      if (url.pathname === "/api/delete-friend" && method === "POST") {
-        const { userId, friendId } = await request.json();
-        await env.DB.prepare("DELETE FROM friends WHERE (userId = ? AND friendId = ?) OR (userId = ? AND friendId = ?)").bind(userId, friendId, friendId, userId).run();
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-      }
-
-      // 9. 退出群聊
-      if (url.pathname === "/api/leave-group" && method === "POST") {
-        const { userId, groupId } = await request.json();
-        await env.DB.prepare("DELETE FROM groups WHERE userId = ? AND groupId = ?").bind(userId, groupId).run();
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-      }
-
-      // 10. 管理后台：获取全量数据
-      if (url.pathname === "/api/admin/data") {
-        const users = await env.DB.prepare("SELECT userId FROM users").all();
-        const groups = await env.DB.prepare("SELECT DISTINCT groupId FROM groups").all();
-        const messages = await env.DB.prepare("SELECT from_user, to_id, content, timestamp FROM messages ORDER BY timestamp DESC LIMIT 50").all();
-        return new Response(JSON.stringify({
-          users: users ? users.results : [],
-          groups: groups ? groups.results : [],
-          messages: messages ? messages.results : []
-        }), { headers: corsHeaders });
-      }
-
-      // 11. 管理后台：删除用户或群聊
-      if (url.pathname === "/api/admin/delete" && method === "POST") {
-        const { type, id } = await request.json();
-        if (type === "user") {
-          await env.DB.prepare("DELETE FROM users WHERE userId = ?").bind(id).run();
-          await env.DB.prepare("DELETE FROM friends WHERE userId = ? OR friendId = ?").bind(id, id).run();
-          await env.DB.prepare("DELETE FROM groups WHERE userId = ?").bind(id).run();
-        } else if (type === "group") {
-          await env.DB.prepare("DELETE FROM groups WHERE groupId = ?").bind(id).run();
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
         }
-        return new Response(JSON.stringify({ success: true }), { headers: corsHeaders });
-      }
 
-      return new Response("Not Found", { status: 404, headers: corsHeaders });
-    } catch (e) {
-      return new Response(JSON.stringify({ error: e.message }), { status: 500, headers: corsHeaders });
-    }
-  }
-};
+        loadAdminData();
+    </script>
+</body>
+</html>
