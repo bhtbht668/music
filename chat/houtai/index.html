@@ -10,8 +10,11 @@
         .container { max-width: 1200px; margin: 0 auto; }
         .admin-header { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 25px 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .admin-header h1 { font-size: 24px; color: #111; }
-        .refresh-btn { background: #07c160; color: white; padding: 10px 24px; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: 500; transition: background 0.2s; }
+        .btn-group { display: flex; gap: 10px; }
+        .refresh-btn { background: #07c160; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: 500; transition: background 0.2s; }
         .refresh-btn:hover { background: #06ad56; }
+        .clear-btn { background: #ff4d4f; color: white; padding: 10px 20px; border: none; border-radius: 6px; font-size: 15px; cursor: pointer; font-weight: 500; transition: background 0.2s; }
+        .clear-btn:hover { background: #ff3836; }
         .panel { background: white; padding: 25px 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 25px; }
         .panel h2 { font-size: 18px; margin-bottom: 15px; color: #444; border-left: 4px solid #07c160; padding-left: 10px; }
         table { width: 100%; border-collapse: collapse; }
@@ -30,21 +33,25 @@
     <div class="container">
         <div class="admin-header">
             <h1>微聊系统超级管理后台</h1>
-            <button class="refresh-btn" onclick="loadAdminData()">🔄 刷新监控数据</button>
+            <div class="btn-group">
+                <button class="clear-btn" onclick="clearAllMessages()">🗑️ 一键清空全网消息</button>
+                <button class="refresh-btn" onclick="loadAdminData()">🔄 刷新监控数据</button>
+            </div>
         </div>
 
         <div class="panel">
-            <h2>用户与群聊监控中心</h2>
+            <h2>用户与群聊监控中心 (含密码查询)</h2>
             <table id="userTable">
                 <thead>
                     <tr>
                         <th>目标 ID / 号码</th>
+                        <th>密码</th>
                         <th>类型</th>
                         <th style="width: 120px;">管理操作</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <tr><td colspan="3" class="empty-tip">正在加载数据...</td></tr>
+                    <tr><td colspan="4" class="empty-tip">正在加载数据...</td></tr>
                 </tbody>
             </table>
         </div>
@@ -82,22 +89,22 @@
                 }
                 const data = await res.json();
                 
-                // 渲染用户与群聊列表
+                // 渲染用户与群聊列表 (展示密码)
                 const uBody = document.querySelector("#userTable tbody");
                 let rows = "";
                 
                 if (data.users && data.users.length > 0) {
                     data.users.forEach(u => {
-                        rows += `<tr><td>${u.userId}</td><td><span class="badge badge-user">用户</span></td><td><button class="action-btn" onclick="delItem('user', '${u.userId}')">删除用户</button></td></tr>`;
+                        rows += `<tr><td>${u.userId}</td><td><code>${u.password || '无'}</code></td><td><span class="badge badge-user">用户</span></td><td><button class="action-btn" onclick="delItem('user', '${u.userId}')">删除用户</button></td></tr>`;
                     });
                 }
                 if (data.groups && data.groups.length > 0) {
                     data.groups.forEach(g => {
-                        rows += `<tr><td>${g.groupId}</td><td><span class="badge badge-group">群聊</span></td><td><button class="action-btn" onclick="delItem('group', '${g.groupId}')">解散群聊</button></td></tr>`;
+                        rows += `<tr><td>${g.groupId}</td><td>-</td><td><span class="badge badge-group">群聊</span></td><td><button class="action-btn" onclick="delItem('group', '${g.groupId}')">解散群聊</button></td></tr>`;
                     });
                 }
                 if (!rows) {
-                    rows = `<tr><td colspan="3" class="empty-tip">暂无用户或群聊数据</td></tr>`;
+                    rows = `<tr><td colspan="4" class="empty-tip">暂无用户或群聊数据</td></tr>`;
                 }
                 uBody.innerHTML = rows;
 
@@ -131,6 +138,25 @@
                     loadAdminData();
                 } else {
                     alert("操作失败");
+                }
+            } catch (e) {
+                alert("网络请求失败");
+            }
+        }
+
+        async function clearAllMessages() {
+            if (!confirm("⚠️ 确定要一键清空全网所有的聊天消息记录吗？此操作不可恢复！")) return;
+            try {
+                const res = await fetch(`${API_BASE}/api/admin/clear-messages`, { 
+                    method: 'POST', 
+                    headers: { "Authorization": adminToken, "Content-Type": "application/json" } 
+                });
+                const result = await res.json();
+                if (result.success) {
+                    alert("已成功清空所有聊天消息！");
+                    loadAdminData();
+                } else {
+                    alert("清空失败");
                 }
             } catch (e) {
                 alert("网络请求失败");
