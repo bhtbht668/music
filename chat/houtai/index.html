@@ -89,7 +89,6 @@
                 }
                 const data = await res.json();
                 
-                // 渲染用户与群聊列表 (展示密码)
                 const uBody = document.querySelector("#userTable tbody");
                 let rows = "";
                 
@@ -108,7 +107,6 @@
                 }
                 uBody.innerHTML = rows;
 
-                // 渲染实时消息流
                 const mBody = document.querySelector("#msgTable tbody");
                 let mRows = "";
                 if (data.messages && data.messages.length > 0) {
